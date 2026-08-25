@@ -1,36 +1,59 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# NBA 2K Players List
 
-## Getting Started
+A personal web app to browse, filter, and save NBA 2K player ratings — built entirely through **vibe coding** with [Claude Code](https://claude.ai/code) (Anthropic).
 
-First, run the development server:
+## What it does
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+- Browse all current NBA players with their 2K ratings, attributes, badges, and archetypes
+- Filter by position, team, overall rating range, archetype, and individual attributes
+- View each player's **potential** rating and **age**
+- **Draft Tool** — explore any NBA draft class year with rankings and ratings
+- Save a personal watchlist ("La mia lista") that persists in the browser
+- Full player detail page with rating history, badge breakdown, and attribute radar
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Data sources
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+| Source | What it provides | How |
+|---|---|---|
+| [nba2kapi.com](https://nba2kapi.com) | Player ratings, attributes, badges, archetypes, teams | REST API (requires API key) |
+| [2kratings.com](https://www.2kratings.com) | Potential attribute, player birthdate/age, draft class lists | Web scraping via Playwright |
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+> **Note:** 2kratings.com is an unofficial community site — all credit for the potential ratings and draft data goes to them. This app scrapes their public pages for personal use only and is not affiliated with them.
 
-## Learn More
+## Tech stack
 
-To learn more about Next.js, take a look at the following resources:
+- **Next.js 16** (App Router) — frontend + API routes
+- **React 19** + **TypeScript**
+- **Tailwind CSS v4**
+- **Playwright** — headless browser scraping with stealth mode
+- Local file-based cache for scraped data (6h TTL for potentials, 24h for draft classes)
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Setup
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+1. Clone the repo
+2. Install dependencies:
+   ```bash
+   npm install
+   npx playwright install chromium
+   ```
+3. Create a `.env.local` file with your API key:
+   ```
+   NBA2K_API_KEY=your_key_here
+   ```
+   Get a key at [nba2kapi.com](https://nba2kapi.com).
 
-## Deploy on Vercel
+4. Run the dev server:
+   ```bash
+   npm run dev
+   ```
+   Open [http://localhost:3000](http://localhost:3000).
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Notes
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- The first page load fetches potentials for all visible players in parallel — this can take 20–40 seconds if the cache is cold.
+- The scraping cache lives in `/.cache` (excluded from git).
+- The app is private (`"private": true`) and intended for personal use.
+
+## Built with
+
+This project was built 100% through **vibe coding** — describing features in natural language to Claude Code (Anthropic) and iterating in conversation. No boilerplate was written by hand.
