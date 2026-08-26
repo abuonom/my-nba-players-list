@@ -2,6 +2,61 @@
 
 A personal web app to browse, filter, and save NBA 2K player ratings — built entirely through **vibe coding** with [Claude Code](https://claude.ai/code) (Anthropic).
 
+---
+
+## 🇮🇹 Guida rapida (per chi non è tecnico)
+
+### Cosa ti serve prima di iniziare
+
+1. **Node.js** — il motore che fa girare l'app. Se non ce l'hai:
+   - Vai su [nodejs.org](https://nodejs.org)
+   - Clicca il bottone verde **"LTS"** e scarica il file
+   - Installalo come un normale programma (avanti, avanti, fine)
+
+2. **Una chiave API** per i dati NBA 2K:
+   - Vai su [nba2kapi.com](https://nba2kapi.com) e registrati
+   - Una volta ottenuta la chiave, tienila da parte
+
+3. **Il codice dell'app** — scaricalo come ZIP da GitHub (bottone verde "Code" → "Download ZIP"), poi estrailo in una cartella.
+
+---
+
+### Come avviare l'app (primo avvio)
+
+**Passo 1 — Prima configurazione (solo la prima volta)**
+
+Apri la cartella del progetto, fai doppio clic su **`setup.bat`** e segui le istruzioni a schermo. Lo script installa tutto automaticamente.
+
+**Passo 2 — Crea il file con la chiave API**
+
+Nella cartella del progetto, crea un file di testo chiamato **`.env.local`** (attenzione: il nome inizia con un punto). Scrivi dentro:
+
+```
+NBA2K_API_KEY=incolla_qui_la_tua_chiave
+```
+
+> **Come creare il file:** apri il Blocco Note, scrivi la riga qui sopra con la tua chiave, poi vai su *File → Salva con nome*, scegli "Tutti i file" nel menu a tendina del tipo, e salva come `.env.local` nella cartella del progetto.
+
+**Passo 3 — Avvia l'app**
+
+Fai doppio clic su **`avvia.bat`**. Quando vedi scritto `Ready in ...`, apri il browser e vai su:
+
+👉 **[http://localhost:3000](http://localhost:3000)**
+
+**Per i prossimi avvii:** basta fare doppio clic su `avvia.bat` ogni volta.
+
+---
+
+### Domande frequenti
+
+**L'app è lenta al primo caricamento** — normale. La prima volta scarica i dati per tutti i giocatori, può volerci 20–40 secondi.
+
+**Come fermo l'app?** — Chiudi la finestra nera (il terminale) oppure premi `CTRL+C` al suo interno.
+
+**Dove vengono salvati i dati?** — Sul tuo computer, nella cartella `.cache` dentro il progetto. Niente viene inviato online.
+
+---
+
 ## What it does
 
 - Browse all current NBA players with their 2K ratings, attributes, badges, and archetypes
@@ -28,7 +83,7 @@ A personal web app to browse, filter, and save NBA 2K player ratings — built e
 - **Playwright** — headless browser scraping with stealth mode
 - Local file-based cache for scraped data (6h TTL for potentials, 24h for draft classes)
 
-## Setup
+## Setup (for developers)
 
 1. Clone the repo
 2. Install dependencies:
