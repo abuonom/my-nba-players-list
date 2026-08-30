@@ -1,0 +1,534 @@
+'use client'
+
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
+import { Player } from '@/types/nba'
+import { useSavedPlayers } from '@/hooks/useSavedPlayers'
+import type { ContractEntry } from '@/app/api/contracts/route'
+import type { PlayerExtra } from '@/hooks/usePotentials'
+import { scorePlayer, BuildWeights, DEFAULT_WEIGHTS, PlayerScore } from '@/lib/nba/playerScorer'
+import SavedList from '@/components/SavedList'
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+function fmt(n: number) {
+  if (n >= 1_000_000) return `$${(n / 1_000_000).toFixed(1)}M`
+  return `$${(n / 1_000).toFixed(0)}K`
+}
+
+function matchContract(name: string, contracts: ContractEntry[]): ContractEntry | null {
+  const norm = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]/g, '')
+  const n = norm(name)
+  return contracts.find(c => norm(c.name) === n) ??
+    contracts.find(c => norm(c.name).includes(n) || n.includes(norm(c.name))) ??
+    null
+}
+
+function ovrClass(ovr: number) {
+  if (ovr >= 95) return 'ovr-s'
+  if (ovr >= 90) return 'ovr-a'
+  if (ovr >= 85) return 'ovr-b'
+  if (ovr >= 80) return 'ovr-c'
+  return 'ovr-d'
+}
+
+const POT_STYLE: Record<string, { color: string; bg: string }> = {
+  'A+': { color: '#fde047', bg: 'rgba(234,179,8,0.15)' },
+  'A':  { color: '#86efac', bg: 'rgba(34,197,94,0.12)' },
+  'A-': { color: '#4ade80', bg: 'rgba(34,197,94,0.08)' },
+  'B+': { color: '#93c5fd', bg: 'rgba(59,130,246,0.12)' },
+  'B':  { color: '#7dd3fc', bg: 'rgba(14,165,233,0.1)' },
+  'B-': { color: '#60a5fa', bg: 'rgba(59,130,246,0.07)' },
+  'C+': { color: '#cbd5e1', bg: 'rgba(148,163,184,0.1)' },
+  'C':  { color: '#94a3b8', bg: 'rgba(100,116,139,0.1)' },
+  'D':  { color: '#fca5a5', bg: 'rgba(239,68,68,0.1)' },
+}
+
+// ── Slider component ──────────────────────────────────────────────────────────
+
+const PROFILES: { key: keyof BuildWeights; label: string; desc: string; color: string }[] = [
+  { key: 'rebuild',      label: 'REBUILD',       desc: 'Giovani con alto potenziale',         color: '#4ade80' },
+  { key: 'winNow',       label: 'WIN NOW',        desc: 'Overall alto, pronti subito',          color: '#c084fc' },
+  { key: 'valueHunt',    label: 'VALUE HUNT',     desc: 'Attributi elite nascosti dall\'OVR',  color: '#facc15' },
+  { key: 'teamFriendly', label: 'TEAM FRIENDLY',  desc: 'Contratti corti e convenienti',        color: '#60a5fa' },
+]
+
+function Slider({
+  profile, value, onChange,
+}: { profile: typeof PROFILES[number]; value: number; onChange: (v: number) => void }) {
+  return (
+    <div className="space-y-1.5">
+      <div className="flex items-center justify-between">
+        <div>
+          <span className="font-display text-sm font-black tracking-wider" style={{ color: profile.color }}>
+            {profile.label}
+          </span>
+          <div className="text-[10px] mt-0.5" style={{ color: 'var(--text-dim)' }}>{profile.desc}</div>
+        </div>
+        <span className="font-display text-lg font-black w-8 text-right" style={{ color: profile.color }}>
+          {value}
+        </span>
+      </div>
+      <input
+        type="range" min={0} max={10} step={1} value={value}
+        onChange={e => onChange(Number(e.target.value))}
+        className="w-full h-1.5 rounded-full appearance-none cursor-pointer"
+        style={{
+          background: `linear-gradient(to right, ${profile.color} ${value * 10}%, var(--border2) ${value * 10}%)`,
+          accentColor: profile.color,
+        }}
+      />
+    </div>
+  )
+}
+
+// ── Score bar ─────────────────────────────────────────────────────────────────
+
+function ScoreBar({ value, color }: { value: number; color: string }) {
+  return (
+    <div className="flex items-center gap-1.5 w-full">
+      <div className="flex-1 h-1 rounded-full overflow-hidden" style={{ background: 'var(--border)' }}>
+        <div className="h-full rounded-full" style={{ width: `${value}%`, background: color, transition: 'width 0.3s' }} />
+      </div>
+      <span className="text-[10px] font-bold tabular-nums w-6 text-right" style={{ color }}>
+        {value}
+      </span>
+    </div>
+  )
+}
+
+// ── Total score ring ─────────────────────────────────────────────────────────
+
+function TotalScore({ score, rank }: { score: number; rank: number }) {
+  const color = score >= 75 ? '#fde047' : score >= 55 ? '#4ade80' : score >= 35 ? '#60a5fa' : 'var(--text-sec)'
+  return (
+    <div className="flex flex-col items-center w-14 shrink-0">
+      <div className="text-[9px] uppercase tracking-widest mb-0.5" style={{ color: 'var(--text-dim)' }}>#{rank}</div>
+      <div
+        className="w-12 h-12 rounded-full flex items-center justify-center font-display text-xl font-black"
+        style={{
+          background: `conic-gradient(${color} ${score * 3.6}deg, var(--border) 0deg)`,
+          padding: 3,
+        }}
+      >
+        <div className="w-full h-full rounded-full flex items-center justify-center" style={{ background: 'var(--surface)' }}>
+          <span style={{ color }}>{score}</span>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ── Main page ─────────────────────────────────────────────────────────────────
+
+interface DraftPick { slug: string; rank: number; pick: string; draftYear: number }
+
+const DRAFT_YEARS = [2025, 2024, 2023, 2022, 2021]
+
+export default function DraftBuilderPage() {
+  const [weights, setWeights] = useState<BuildWeights>(DEFAULT_WEIGHTS)
+  const [players, setPlayers] = useState<Player[]>([])
+  const [potentials, setPotentials] = useState<Map<string, PlayerExtra>>(new Map())
+  const [contracts, setContracts] = useState<ContractEntry[]>([])
+  const [loading, setLoading] = useState(true)
+  const [search, setSearch] = useState('')
+  const [minOvr, setMinOvr] = useState(75)
+  const [posFilter, setPosFilter] = useState<string | null>(null)
+  const [showSaved, setShowSaved] = useState(false)
+  // Draft class filter
+  const [draftYears, setDraftYears] = useState<number[]>([])
+  const [draftPicks, setDraftPicks] = useState<Map<string, DraftPick>>(new Map())
+  const [draftLoading, setDraftLoading] = useState(false)
+  const loadedDraftYears = useRef(new Set<number>())
+  const { savedPlayers, isSaved, savePlayer, removePlayer, clearAll } = useSavedPlayers()
+
+  const setWeight = useCallback((key: keyof BuildWeights, v: number) => {
+    setWeights(prev => ({ ...prev, [key]: v }))
+  }, [])
+
+  const toggleDraftYear = useCallback(async (year: number) => {
+    const next = draftYears.includes(year)
+      ? draftYears.filter(y => y !== year)
+      : [...draftYears, year]
+    setDraftYears(next)
+
+    if (!draftYears.includes(year) && !loadedDraftYears.current.has(year)) {
+      setDraftLoading(true)
+      try {
+        const d = await fetch(`/api/draft/${year}`).then(r => r.json())
+        if (d.success) {
+          setDraftPicks(prev => {
+            const m = new Map(prev)
+            for (const p of d.data) m.set(p.slug, { slug: p.slug, rank: p.rank, pick: p.pick, draftYear: year })
+            return m
+          })
+          loadedDraftYears.current.add(year)
+        }
+      } finally { setDraftLoading(false) }
+    }
+  }, [draftYears])
+
+  useEffect(() => {
+    Promise.all([
+      fetch('/api/players').then(r => r.json()),
+      fetch('/api/contracts').then(r => r.json()),
+    ]).then(([pd, cd]) => {
+      const allPlayers: Player[] = pd.success ? pd.data : []
+      setPlayers(allPlayers)
+      if (cd.success) setContracts(cd.data)
+
+      // Fetch potentials in chunks
+      const slugs = allPlayers.map((p: Player) => p.slug)
+      const chunks: string[][] = []
+      for (let i = 0; i < slugs.length; i += 50) chunks.push(slugs.slice(i, i + 50))
+      return Promise.all(
+        chunks.map(c => fetch(`/api/players/potentials?slugs=${c.join(',')}`).then(r => r.json()))
+      )
+    }).then(results => {
+      const map = new Map<string, PlayerExtra>()
+      for (const batch of results) {
+        for (const [slug, val] of Object.entries(batch)) map.set(slug, val as PlayerExtra)
+      }
+      setPotentials(map)
+      setLoading(false)
+    }).catch(() => setLoading(false))
+  }, [])
+
+  const activeDraftSlugs = useMemo(() => {
+    if (draftYears.length === 0) return null
+    const s = new Set<string>()
+    for (const [slug, pick] of draftPicks) {
+      if (draftYears.includes(pick.draftYear)) s.add(slug)
+    }
+    return s
+  }, [draftYears, draftPicks])
+
+  const scored = useMemo(() => {
+    return players
+      .filter(p => p.overall >= minOvr)
+      .filter(p => !search || p.name.toLowerCase().includes(search.toLowerCase()))
+      .filter(p => !posFilter || p.positions.includes(posFilter))
+      .filter(p => !activeDraftSlugs || activeDraftSlugs.has(p.slug))
+      .map(p => {
+        const extra = potentials.get(p.slug)
+        const contract = contracts.length > 0 ? matchContract(p.name, contracts) : undefined
+        const score = scorePlayer(p, extra, contract, weights)
+        const pick = draftPicks.get(p.slug)
+        return { player: p, extra, contract, score, pick: pick ?? null }
+      })
+      .sort((a, b) => b.score.total - a.score.total)
+  }, [players, potentials, contracts, weights, minOvr, search, posFilter, activeDraftSlugs, draftPicks])
+
+  const totalActive = weights.rebuild + weights.winNow + weights.valueHunt + weights.teamFriendly
+
+  return (
+    <div style={{ minHeight: '100vh', background: 'var(--bg)' }}>
+      {/* Header */}
+      <header style={{ background: 'var(--surface)', borderBottom: '1px solid var(--border)' }} className="sticky top-0 z-40">
+        <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <a href="/" className="flex items-center gap-2">
+              <span className="font-display text-2xl font-bold tracking-wider" style={{ color: 'var(--gold)' }}>GOAT LEAGUE</span>
+              <span className="font-display text-2xl font-bold tracking-wide" style={{ color: 'var(--text)' }}>PROJECT</span>
+            </a>
+            <div
+              className="font-display text-sm font-black tracking-widest uppercase px-3 py-1.5 rounded"
+              style={{ color: 'var(--gold)', border: '1px solid var(--gold-dim)', background: 'var(--gold-bg)' }}
+            >
+              Draft Builder
+            </div>
+          </div>
+          <div className="flex items-center gap-2 flex-wrap justify-end">
+            {/* Position filters */}
+            <div className="flex gap-1">
+              {['PG','SG','SF','PF','C'].map(pos => (
+                <button
+                  key={pos}
+                  onClick={() => setPosFilter(p => p === pos ? null : pos)}
+                  className="font-display text-xs font-black px-2 py-1 rounded transition-all"
+                  style={posFilter === pos
+                    ? { background: 'var(--gold-bg2)', color: 'var(--gold)', border: '1px solid var(--gold-dim)' }
+                    : { background: 'var(--surface2)', color: 'var(--text-sec)', border: '1px solid var(--border)' }
+                  }
+                >
+                  {pos}
+                </button>
+              ))}
+            </div>
+
+            <input
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="Cerca..."
+              className="text-xs px-3 py-1.5 rounded-lg outline-none w-32"
+              style={{ background: 'var(--surface2)', border: '1px solid var(--border2)', color: 'var(--text)' }}
+            />
+
+            <select
+              value={minOvr}
+              onChange={e => setMinOvr(Number(e.target.value))}
+              className="text-xs px-2 py-1.5 rounded-lg outline-none"
+              style={{ background: 'var(--surface2)', border: '1px solid var(--border2)', color: 'var(--text)' }}
+            >
+              {[65, 70, 75, 78, 80, 82, 85].map(v => <option key={v} value={v}>{v}+</option>)}
+            </select>
+
+            <button
+              onClick={() => setShowSaved(true)}
+              className="flex items-center gap-2 text-xs font-semibold px-3 py-1.5 rounded transition-colors"
+              style={{ background: 'rgba(232,160,32,0.12)', color: 'var(--gold)', border: '1px solid rgba(232,160,32,0.3)' }}
+            >
+              Il mio Squad
+              {savedPlayers.length > 0 && (
+                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded" style={{ background: 'var(--gold)', color: '#000' }}>
+                  {savedPlayers.length}
+                </span>
+              )}
+            </button>
+          </div>
+        </div>
+      </header>
+
+      <div className="max-w-7xl mx-auto px-4 py-6 flex gap-5">
+        {/* Sidebar — sliders */}
+        <aside className="w-64 shrink-0">
+          <div className="sticky top-16 space-y-4">
+            <div className="rounded-xl p-4 space-y-5" style={{ background: 'var(--surface)', border: '1px solid var(--border2)' }}>
+              <div>
+                <div className="font-display text-base font-black tracking-wider mb-0.5" style={{ color: 'var(--text)' }}>
+                  PROFILO DI BUILD
+                </div>
+                <div className="text-[10px]" style={{ color: 'var(--text-dim)' }}>
+                  Peso 0–10 per ogni dimensione
+                </div>
+              </div>
+              {PROFILES.map(p => (
+                <Slider key={p.key} profile={p} value={weights[p.key]} onChange={v => setWeight(p.key, v)} />
+              ))}
+              {totalActive === 0 && (
+                <div className="text-xs text-center px-2 py-2 rounded" style={{ color: '#fb923c', background: 'rgba(251,146,60,0.1)', border: '1px solid rgba(251,146,60,0.25)' }}>
+                  Attiva almeno uno slider
+                </div>
+              )}
+            </div>
+
+            {/* Draft class filter */}
+            <div className="rounded-xl p-4 space-y-3" style={{ background: 'var(--surface)', border: '1px solid var(--border2)' }}>
+              <div>
+                <div className="font-display text-base font-black tracking-wider mb-0.5" style={{ color: 'var(--text)' }}>
+                  DRAFT CLASS
+                </div>
+                <div className="text-[10px]" style={{ color: 'var(--text-dim)' }}>
+                  Filtra per anno di draft
+                </div>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {DRAFT_YEARS.map(y => {
+                  const active = draftYears.includes(y)
+                  return (
+                    <button
+                      key={y}
+                      onClick={() => toggleDraftYear(y)}
+                      className="font-display text-xs font-black px-2.5 py-1 rounded-lg transition-all"
+                      style={active
+                        ? { background: 'var(--gold-bg2)', color: 'var(--gold)', border: '1px solid var(--gold-dim)' }
+                        : { background: 'var(--surface2)', color: 'var(--text-sec)', border: '1px solid var(--border)' }
+                      }
+                    >
+                      {y}
+                    </button>
+                  )
+                })}
+              </div>
+              {draftYears.length > 0 && (
+                <button
+                  onClick={() => setDraftYears([])}
+                  className="text-[10px] w-full text-center"
+                  style={{ color: 'var(--text-dim)' }}
+                >
+                  Mostra tutti
+                </button>
+              )}
+              {draftLoading && (
+                <div className="text-[10px]" style={{ color: 'var(--text-dim)' }}>Caricamento draft class...</div>
+              )}
+            </div>
+
+            {/* Legend */}
+            <div className="rounded-xl p-4 space-y-2" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
+              <div className="text-[9px] uppercase tracking-widest font-semibold mb-2" style={{ color: 'var(--text-dim)' }}>Score totale</div>
+              {[
+                { range: '75–100', label: 'Ideale per il tuo build', color: '#fde047' },
+                { range: '55–74',  label: 'Buona scelta',            color: '#4ade80' },
+                { range: '35–54',  label: 'Discreta',                color: '#60a5fa' },
+                { range: '0–34',   label: 'Non adatto',              color: 'var(--text-dim)' },
+              ].map(r => (
+                <div key={r.range} className="flex items-center gap-2 text-xs">
+                  <div className="w-2 h-2 rounded-full shrink-0" style={{ background: r.color }} />
+                  <span className="font-bold tabular-nums w-12" style={{ color: r.color }}>{r.range}</span>
+                  <span style={{ color: 'var(--text-sec)' }}>{r.label}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </aside>
+
+        {/* Main — player list */}
+        <main className="flex-1 min-w-0">
+          <div className="text-xs mb-3" style={{ color: 'var(--text-dim)' }}>
+            {loading ? 'Caricamento...' : `${scored.length} giocatori`}
+          </div>
+
+          {loading ? (
+            <div className="space-y-2">
+              {Array.from({ length: 10 }).map((_, i) => (
+                <div key={i} className="h-20 rounded-xl animate-pulse" style={{ background: 'var(--surface)' }} />
+              ))}
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {scored.map(({ player, extra, contract, score, pick }, idx) => (
+                <DraftBuilderRow
+                  key={player.slug}
+                  player={player}
+                  extra={extra}
+                  contract={contract ?? null}
+                  score={score}
+                  rank={idx + 1}
+                  pick={pick}
+                  isSaved={isSaved(player.slug)}
+                  onSave={() => savePlayer(player)}
+                  onRemove={() => removePlayer(player.slug)}
+                  weights={weights}
+                />
+              ))}
+            </div>
+          )}
+        </main>
+      </div>
+
+      {showSaved && (
+        <SavedList
+          players={savedPlayers}
+          contracts={contracts}
+          onRemove={removePlayer}
+          onClearAll={clearAll}
+          onClose={() => setShowSaved(false)}
+        />
+      )}
+    </div>
+  )
+}
+
+// ── Row component ─────────────────────────────────────────────────────────────
+
+function DraftBuilderRow({
+  player, extra, contract, score, rank, pick, isSaved, onSave, onRemove, weights,
+}: {
+  player: Player
+  extra: PlayerExtra | undefined
+  contract: ContractEntry | null
+  score: PlayerScore
+  rank: number
+  pick: DraftPick | null
+  isSaved: boolean
+  onSave: () => void
+  onRemove: () => void
+  weights: BuildWeights
+}) {
+  const pot = extra?.potential
+  const age = extra?.age
+  const potStyle = pot ? POT_STYLE[pot] : null
+  const salary = contract?.salaries[0]?.amount
+
+  return (
+    <div
+      className="flex items-center gap-3 px-4 py-3 rounded-xl border"
+      style={{ background: 'var(--surface)', borderColor: 'var(--border2)' }}
+    >
+      {/* Rank + score ring */}
+      <TotalScore score={score.total} rank={rank} />
+
+      {/* OVR */}
+      <div
+        className={`font-display text-3xl font-black w-12 text-center leading-none shrink-0 ${ovrClass(player.overall)}`}
+        onClick={() => window.open(`/player/${player.slug}`, '_blank')}
+        style={{ cursor: 'pointer' }}
+      >
+        {player.overall}
+      </div>
+
+      {/* Name + meta */}
+      <div className="flex-1 min-w-0 cursor-pointer" onClick={() => window.open(`/player/${player.slug}`, '_blank')}>
+        <div className="font-display text-lg font-bold leading-tight truncate" style={{ color: 'var(--text)' }}>
+          {player.name}
+        </div>
+        <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+          <span className="text-xs" style={{ color: 'var(--text-sec)' }}>{player.team}</span>
+          {age != null && (
+            <>
+              <span style={{ color: 'var(--text-dim)' }}>·</span>
+              <span className="text-xs" style={{ color: 'var(--text-sec)' }}>{age} anni</span>
+            </>
+          )}
+          {pot && potStyle && (
+            <>
+              <span style={{ color: 'var(--text-dim)' }}>·</span>
+              <span
+                className="font-display text-xs font-black px-1.5 py-0.5 rounded"
+                style={{ color: potStyle.color, background: potStyle.bg }}
+              >
+                {pot}
+              </span>
+            </>
+          )}
+          {pick && (
+            <>
+              <span style={{ color: 'var(--text-dim)' }}>·</span>
+              <span
+                className="font-display text-[10px] font-black px-1.5 py-0.5 rounded"
+                style={{ background: 'var(--gold-bg)', color: 'var(--gold)', border: '1px solid var(--gold-dim)' }}
+              >
+                {pick.draftYear} #{pick.pick}
+              </span>
+            </>
+          )}
+          {salary ? (
+            <>
+              <span style={{ color: 'var(--text-dim)' }}>·</span>
+              <span className="text-xs font-bold tabular-nums" style={{ color: 'var(--gold)' }}>{fmt(salary)}</span>
+            </>
+          ) : contract === null ? (
+            <>
+              <span style={{ color: 'var(--text-dim)' }}>·</span>
+              <span className="text-xs font-bold" style={{ color: 'var(--text-sec)' }}>FA</span>
+            </>
+          ) : null}
+        </div>
+      </div>
+
+      {/* Score breakdown — only active dimensions */}
+      <div className="hidden lg:flex flex-col gap-1 w-48 shrink-0">
+        {PROFILES.filter(p => weights[p.key] > 0).map(p => (
+          <div key={p.key} className="flex items-center gap-2">
+            <span className="text-[9px] font-bold w-16 uppercase tracking-wide shrink-0" style={{ color: p.color }}>
+              {p.label}
+            </span>
+            <ScoreBar value={score[p.key]} color={p.color} />
+          </div>
+        ))}
+      </div>
+
+      {/* Action */}
+      <button
+        onClick={isSaved ? onRemove : onSave}
+        className="text-xs font-semibold px-3 py-2 rounded-lg transition-all whitespace-nowrap shrink-0"
+        style={isSaved
+          ? { background: 'rgba(239,68,68,0.1)', color: '#f87171', border: '1px solid rgba(239,68,68,0.25)' }
+          : { background: 'var(--gold-bg)', color: 'var(--gold)', border: '1px solid var(--gold-dim)' }
+        }
+      >
+        {isSaved ? 'Rimuovi' : '+ Squad'}
+      </button>
+    </div>
+  )
+}

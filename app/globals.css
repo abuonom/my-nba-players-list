@@ -1,24 +1,26 @@
-@import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800;900&family=Inter:wght@400;500;600;700&display=swap');
 
 @import "tailwindcss";
 
 :root {
-  --bg:        #070c16;
-  --surface:   #0d1626;
-  --surface2:  #122035;
-  --border:    #1c2d47;
-  --border2:   #243a57;
-  --gold:      #e8a020;
-  --gold-dim:  #a06c10;
-  --text:      #e8edf8;
-  --text-sec:  #4a6080;
-  --text-dim:  #2a3f5a;
+  --bg:        #080808;
+  --surface:   #111111;
+  --surface2:  #1a1a1a;
+  --border:    #2a2a2a;
+  --border2:   #3a3a3a;
+  --gold:      #d4a017;
+  --gold-dim:  #7a5c0a;
+  --gold-bg:   rgba(212,160,23,0.10);
+  --gold-bg2:  rgba(212,160,23,0.18);
+  --text:      #f0f0f0;
+  --text-sec:  #909090;
+  --text-dim:  #505050;
 
   --ovr-s:     #fbbf24;
   --ovr-a:     #c084fc;
   --ovr-b:     #60a5fa;
   --ovr-c:     #34d399;
-  --ovr-d:     #94a3b8;
+  --ovr-d:     #64748b;
 }
 
 * { box-sizing: border-box; }
@@ -34,17 +36,14 @@ body {
   font-family: 'Barlow Condensed', sans-serif;
 }
 
-/* OVR coloring */
 .ovr-s  { color: var(--ovr-s); }
 .ovr-a  { color: var(--ovr-a); }
 .ovr-b  { color: var(--ovr-b); }
 .ovr-c  { color: var(--ovr-c); }
 .ovr-d  { color: var(--ovr-d); }
 
-/* Scrollbar */
 ::-webkit-scrollbar { width: 4px; height: 4px; }
 ::-webkit-scrollbar-track { background: var(--surface); }
 ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
 
-/* Input / Select base */
 input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; }

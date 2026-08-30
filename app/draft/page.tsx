@@ -23,14 +23,16 @@ const DRAFT_YEARS = [2025, 2024, 2023, 2022, 2021]
 const POTENTIAL_STYLE: Record<string, { color: string; bg: string }> = {
   'A+': { color: '#fde047', bg: 'rgba(234,179,8,0.15)' },
   'A':  { color: '#86efac', bg: 'rgba(34,197,94,0.12)' },
+  'A-': { color: '#4ade80', bg: 'rgba(34,197,94,0.08)' },
   'B+': { color: '#93c5fd', bg: 'rgba(59,130,246,0.12)' },
   'B':  { color: '#7dd3fc', bg: 'rgba(14,165,233,0.1)' },
+  'B-': { color: '#60a5fa', bg: 'rgba(59,130,246,0.07)' },
   'C+': { color: '#cbd5e1', bg: 'rgba(148,163,184,0.1)' },
   'C':  { color: '#94a3b8', bg: 'rgba(100,116,139,0.1)' },
   'D':  { color: '#fca5a5', bg: 'rgba(239,68,68,0.1)' },
 }
 
-const POT_ORDER = ['A+', 'A', 'B+', 'B', 'C+', 'C', 'D']
+const POT_ORDER = ['A+', 'A', 'A-', 'B+', 'B', 'B-', 'C+', 'C', 'D']
 
 function ovrColor(ovr: number) {
   if (ovr >= 90) return 'var(--ovr-a)'
@@ -45,7 +47,7 @@ function formatSalary(n: number) {
 }
 
 function matchContract(name: string, contracts: ContractEntry[]): ContractEntry | null {
-  const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, '')
+  const norm = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]/g, '')
   const n = norm(name)
   return contracts.find(c => norm(c.name) === n) ??
     contracts.find(c => norm(c.name).includes(n) || n.includes(norm(c.name))) ??
@@ -419,33 +421,59 @@ export default function DraftPage() {
                   {age ?? '—'}
                 </div>
 
-                <div className="text-xs space-y-0.5 min-w-0">
-                  {contract ? (
-                    <>
-                      <div className="font-semibold" style={{ color: 'var(--text)' }}>
-                        {contract.yearsRemaining} anno{contract.yearsRemaining !== 1 ? 'i' : ''}
+                {/* Contract block */}
+                <div className="min-w-0">
+                  {contract ? (() => {
+                    const s = contract.salaries[0]
+                    const noteLabel: Record<string, string> = { PO: 'PO', TO: 'TO', QO: 'QO' }
+                    const noteTitle: Record<string, string> = { PO: 'Player Option', TO: 'Team Option', QO: 'Qualifying Offer' }
+                    return (
+                      <div className="flex divide-x rounded-lg overflow-hidden text-center" style={{ border: '1px solid var(--border)' }}>
+                        <div className="px-2 py-1 min-w-[48px]" style={{ background: 'var(--surface2)' }}>
+                          <div className="text-[9px] uppercase tracking-widest font-semibold mb-0.5" style={{ color: 'var(--text-dim)' }}>Durata</div>
+                          <div className="font-display text-sm font-bold leading-none" style={{ color: 'var(--text)' }}>
+                            {contract.years_remaining}<span className="text-[10px] font-normal ml-0.5" style={{ color: 'var(--text-sec)' }}>yr</span>
+                          </div>
+                        </div>
+                        <div className="px-2 py-1 min-w-[68px]" style={{ background: 'var(--surface2)' }}>
+                          <div className="text-[9px] uppercase tracking-widest font-semibold mb-0.5" style={{ color: 'var(--text-dim)' }}>Valore</div>
+                          <div className="font-display text-sm font-bold leading-none tabular-nums" style={{ color: 'var(--gold)' }}>
+                            {formatSalary(s.amount)}<span className="text-[10px] font-normal ml-0.5" style={{ color: 'var(--text-sec)' }}>/yr</span>
+                          </div>
+                        </div>
+                        <div className="px-2 py-1 min-w-[68px]" style={{ background: 'var(--surface2)' }}>
+                          <div className="text-[9px] uppercase tracking-widest font-semibold mb-0.5" style={{ color: 'var(--text-dim)' }}>Opzione</div>
+                          {s.note && noteLabel[s.note] ? (
+                            <span
+                              className="font-display text-sm font-black px-1.5 py-0.5 rounded"
+                              style={{ background: 'var(--gold-bg2)', color: 'var(--gold)', border: '1px solid var(--gold-dim)' }}
+                              title={noteTitle[s.note]}
+                            >
+                              {noteLabel[s.note]}
+                            </span>
+                          ) : (
+                            <div className="text-[10px]" style={{ color: 'var(--text-sec)' }}>—</div>
+                          )}
+                        </div>
                       </div>
-                      <div style={{ color: 'var(--text-sec)' }}>
-                        {formatSalary(contract.salaries[0].amount)}/yr
-                        {contract.salaries[0].note && (
-                          <span className="ml-1 px-1 rounded text-[10px]"
-                            style={{ background: 'var(--surface2)', color: 'var(--gold)', border: '1px solid var(--border)' }}>
-                            {contract.salaries[0].note}
-                          </span>
-                        )}
-                      </div>
-                    </>
-                  ) : (
-                    <span style={{ color: 'var(--text-dim)' }}>—</span>
+                    )
+                  })() : (
+                    <div
+                      className="px-3 py-1 rounded-lg text-center inline-block"
+                      style={{ border: '1px solid var(--border2)', background: 'var(--surface2)' }}
+                    >
+                      <span className="font-display text-sm font-black tracking-widest" style={{ color: 'var(--text-sec)' }}>FA</span>
+                      <div className="text-[9px] uppercase tracking-widest" style={{ color: 'var(--text-dim)' }}>Free Agent</div>
+                    </div>
                   )}
                 </div>
 
                 <button
                   onClick={() => isSaved(player.slug) ? removePlayer(player.slug) : savePlayer(fakePlayer)}
-                  className="text-xs font-semibold px-3 py-1.5 rounded transition-colors whitespace-nowrap"
+                  className="text-xs font-semibold px-3 py-1.5 rounded-lg transition-all whitespace-nowrap"
                   style={isSaved(player.slug)
-                    ? { background: 'rgba(239,68,68,0.12)', color: '#f87171', border: '1px solid rgba(239,68,68,0.25)' }
-                    : { background: 'rgba(232,160,32,0.1)', color: 'var(--gold)', border: '1px solid rgba(232,160,32,0.25)' }
+                    ? { background: 'rgba(239,68,68,0.1)', color: '#f87171', border: '1px solid rgba(239,68,68,0.25)' }
+                    : { background: 'var(--gold-bg)', color: 'var(--gold)', border: '1px solid var(--gold-dim)' }
                   }
                 >
                   {isSaved(player.slug) ? 'Rimuovi' : 'Salva'}

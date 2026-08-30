@@ -2,37 +2,55 @@
 
 import { useState, useEffect } from 'react'
 import { Player } from '@/types/nba'
-
-const STORAGE_KEY = 'nba-saved-players'
+import { createClient } from '@/lib/supabase/client'
 
 export function useSavedPlayers() {
   const [savedPlayers, setSavedPlayers] = useState<Player[]>([])
 
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem(STORAGE_KEY)
-      if (stored) setSavedPlayers(JSON.parse(stored))
-    } catch {}
+    const supabase = createClient()
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (!user) return
+      supabase
+        .from('saved_players')
+        .select('player_data')
+        .eq('user_id', user.id)
+        .then(({ data }) => {
+          if (data) setSavedPlayers(data.map((row: { player_data: Player }) => row.player_data))
+        })
+    })
   }, [])
 
-  const savePlayer = (player: Player) => {
-    setSavedPlayers(prev => {
-      if (prev.find(p => p.slug === player.slug)) return prev
-      const updated = [...prev, player]
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(updated))
-      return updated
+  const savePlayer = async (player: Player) => {
+    if (savedPlayers.find(p => p.slug === player.slug)) return
+    setSavedPlayers(prev => [...prev, player])
+    const supabase = createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return
+    await supabase.from('saved_players').upsert({
+      user_id: user.id,
+      slug: player.slug,
+      player_data: player,
     })
   }
 
-  const removePlayer = (slug: string) => {
-    setSavedPlayers(prev => {
-      const updated = prev.filter(p => p.slug !== slug)
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(updated))
-      return updated
-    })
+  const removePlayer = async (slug: string) => {
+    setSavedPlayers(prev => prev.filter(p => p.slug !== slug))
+    const supabase = createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return
+    await supabase.from('saved_players').delete().eq('user_id', user.id).eq('slug', slug)
+  }
+
+  const clearAll = async () => {
+    setSavedPlayers([])
+    const supabase = createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return
+    await supabase.from('saved_players').delete().eq('user_id', user.id)
   }
 
   const isSaved = (slug: string) => savedPlayers.some(p => p.slug === slug)
 
-  return { savedPlayers, savePlayer, removePlayer, isSaved }
+  return { savedPlayers, savePlayer, removePlayer, isSaved, clearAll }
 }

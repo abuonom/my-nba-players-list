@@ -179,7 +179,7 @@ export default function PlayerDetailClient({ player }: Props) {
         {contract && contract.salaries.length > 0 && (
           <div className="rounded-xl p-4" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
             <h2 className="font-display text-sm font-bold uppercase tracking-widest mb-3" style={{ color: 'var(--text-sec)' }}>
-              Contratto <span className="font-normal normal-case tracking-normal" style={{ color: 'var(--text-dim)' }}>({contract.yearsRemaining} {contract.yearsRemaining === 1 ? 'anno' : 'anni'})</span>
+              Contratto <span className="font-normal normal-case tracking-normal" style={{ color: 'var(--text-dim)' }}>({contract.years_remaining} {contract.years_remaining === 1 ? 'anno' : 'anni'})</span>
             </h2>
             <div className="space-y-1.5">
               {contract.salaries.map(s => {

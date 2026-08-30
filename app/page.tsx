@@ -1,12 +1,26 @@
 'use client'
 
-import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
+import { useRouter } from 'next/navigation'
 import { Player, PlayerFilters } from '@/types/nba'
 import PlayerCard from '@/components/PlayerCard'
 import Filters from '@/components/Filters'
 import SavedList from '@/components/SavedList'
+import Toast, { ToastMessage } from '@/components/Toast'
 import { useSavedPlayers } from '@/hooks/useSavedPlayers'
 import { usePotentials } from '@/hooks/usePotentials'
+import { createClient } from '@/lib/supabase/client'
+import type { ContractEntry } from '@/app/api/contracts/route'
+import { analyzeTeam, SalaryStatus } from '@/lib/nba/capAnalyzer'
+import { CURRENT_SEASON } from '@/lib/nba/seasonRules'
+
+function matchContract(name: string, contracts: ContractEntry[]): ContractEntry | null {
+  const norm = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]/g, '')
+  const n = norm(name)
+  return contracts.find(c => norm(c.name) === n) ??
+    contracts.find(c => norm(c.name).includes(n) || n.includes(norm(c.name))) ??
+    null
+}
 
 function applyClientFilters(players: Player[], f: PlayerFilters): Player[] {
   let result = [...players]
@@ -36,10 +50,10 @@ function LoadingScreen({ step, pct }: { step: string; pct: number }) {
     >
       <div className="text-center">
         <div className="font-display text-4xl font-black tracking-widest" style={{ color: 'var(--gold)' }}>
-          NBA 2K
+          GOAT LEAGUE
         </div>
         <div className="font-display text-2xl font-bold tracking-wide mt-1" style={{ color: 'var(--text)' }}>
-          PLAYERS
+          PROJECT
         </div>
       </div>
 
@@ -60,6 +74,7 @@ function LoadingScreen({ step, pct }: { step: string; pct: number }) {
 }
 
 export default function Home() {
+  const router = useRouter()
   const [allPlayers, setAllPlayers] = useState<Player[]>([])
   const [teams, setTeams] = useState<string[]>([])
   const [filters, setFilters] = useState<PlayerFilters>({})
@@ -68,8 +83,34 @@ export default function Home() {
   const [showSaved, setShowSaved] = useState(false)
   const [filtersOpen, setFiltersOpen] = useState(false)
   const [initialLoadDone, setInitialLoadDone] = useState(false)
+  const [contracts, setContracts] = useState<ContractEntry[]>([])
+  const [toasts, setToasts] = useState<ToastMessage[]>([])
+  const prevStatus = useRef<SalaryStatus | null>(null)
+  const toastId = useRef(0)
 
-  const { savedPlayers, savePlayer, removePlayer, isSaved } = useSavedPlayers()
+  const STATUS_TOAST: Record<SalaryStatus, { text: string; sub: string; color: string; bg: string; border: string }> = {
+    BELOW_FLOOR:        { text: 'Sotto il Salary Floor', sub: `Floor: $${(CURRENT_SEASON.salaryFloor/1e6).toFixed(2)}M`, color: '#fb923c', bg: 'rgba(251,146,60,0.12)',  border: 'rgba(251,146,60,0.35)' },
+    UNDER_CAP:          { text: 'Sotto il Salary Cap',   sub: `Cap: $${(CURRENT_SEASON.salaryCap/1e6).toFixed(2)}M`,   color: '#4ade80', bg: 'rgba(74,222,128,0.12)',  border: 'rgba(74,222,128,0.3)' },
+    OVER_CAP_UNDER_TAX: { text: 'Sopra il Salary Cap',   sub: `Ancora sotto la Luxury Tax`,                             color: '#facc15', bg: 'rgba(250,204,21,0.12)',  border: 'rgba(250,204,21,0.35)' },
+    LUXURY_TAX:         { text: 'Luxury Tax Line superata!', sub: `Tax: $${(CURRENT_SEASON.luxuryTaxLine/1e6).toFixed(2)}M`, color: '#f97316', bg: 'rgba(249,115,22,0.15)', border: 'rgba(249,115,22,0.4)' },
+    FIRST_APRON:        { text: 'First Apron superato!',  sub: `$${(CURRENT_SEASON.firstApron/1e6).toFixed(2)}M — restrizioni attive`, color: '#ef4444', bg: 'rgba(239,68,68,0.15)',  border: 'rgba(239,68,68,0.4)' },
+    SECOND_APRON:       { text: 'Second Apron superato!', sub: `$${(CURRENT_SEASON.secondApron/1e6).toFixed(2)}M — massime restrizioni`, color: '#dc2626', bg: 'rgba(220,38,38,0.18)', border: 'rgba(220,38,38,0.45)' },
+  }
+
+  function pushToast(status: SalaryStatus) {
+    const cfg = STATUS_TOAST[status]
+    const id = ++toastId.current
+    setToasts(prev => [...prev, { id, ...cfg }])
+  }
+
+  async function handleLogout() {
+    const supabase = createClient()
+    await supabase.auth.signOut()
+    router.push('/login')
+    router.refresh()
+  }
+
+  const { savedPlayers, savePlayer, removePlayer, isSaved, clearAll } = useSavedPlayers()
 
   const fetchPlayers = useCallback(async (f: PlayerFilters) => {
     setPlayersLoading(true)
@@ -106,6 +147,27 @@ export default function Home() {
       }
     }).catch(() => {})
   }, [])
+
+  useEffect(() => {
+    fetch('/api/contracts').then(r => r.json()).then(data => {
+      if (data.success) setContracts(data.data)
+    }).catch(() => {})
+  }, [])
+
+  // Rileva cambio di status cap e mostra toast
+  useEffect(() => {
+    if (contracts.length === 0 || savedPlayers.length === 0) return
+    const teamSalary = savedPlayers.reduce((sum, p) => {
+      const contract = matchContract(p.name, contracts)
+      return sum + (contract?.salaries[0]?.amount ?? 0)
+    }, 0)
+    const { salaryStatus } = analyzeTeam(teamSalary, CURRENT_SEASON)
+    if (prevStatus.current !== null && prevStatus.current !== salaryStatus) {
+      pushToast(salaryStatus)
+    }
+    prevStatus.current = salaryStatus
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [savedPlayers, contracts])
 
   const archetypes = useMemo(() =>
     [...new Set(allPlayers.map(p => p.archetype).filter(Boolean) as string[])].sort()
@@ -148,18 +210,18 @@ export default function Home() {
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2">
               <h1 className="font-display text-2xl font-bold tracking-wider" style={{ color: 'var(--gold)' }}>
-                NBA 2K
+                GOAT LEAGUE
               </h1>
               <span className="font-display text-2xl font-bold tracking-wide" style={{ color: 'var(--text)' }}>
-                PLAYERS
+                PROJECT
               </span>
             </div>
             <a
-              href="/draft"
+              href="/draft-builder"
               className="font-display text-sm font-bold tracking-widest uppercase px-3 py-1.5 rounded transition-colors"
-              style={{ color: 'var(--text-sec)', border: '1px solid var(--border)', background: 'var(--surface2)' }}
+              style={{ color: 'var(--gold)', border: '1px solid var(--gold-dim)', background: 'var(--gold-bg)' }}
             >
-              Draft Tool
+              Draft Builder
             </a>
           </div>
           <div className="flex items-center gap-2">
@@ -175,12 +237,19 @@ export default function Home() {
               className="flex items-center gap-2 text-xs font-semibold px-3 py-1.5 rounded transition-colors"
               style={{ background: 'rgba(232,160,32,0.12)', color: 'var(--gold)', border: '1px solid rgba(232,160,32,0.3)' }}
             >
-              La mia lista
+              Il mio Squad
               {savedPlayers.length > 0 && (
                 <span className="text-[10px] font-bold px-1.5 py-0.5 rounded" style={{ background: 'var(--gold)', color: '#000' }}>
                   {savedPlayers.length}
                 </span>
               )}
+            </button>
+            <button
+              onClick={handleLogout}
+              className="text-xs font-semibold px-3 py-1.5 rounded transition-colors"
+              style={{ background: 'var(--surface2)', color: 'var(--text-sec)', border: '1px solid var(--border)' }}
+            >
+              Esci
             </button>
           </div>
         </div>
@@ -213,6 +282,7 @@ export default function Home() {
               <span>BH</span><span>DEF</span><span>STL</span>
             </div>
             <div className="w-10 text-center">POT</div>
+            <div className="hidden lg:block w-28 text-right">Contratto</div>
             <div className="w-16" />
           </div>
 
@@ -236,6 +306,7 @@ export default function Home() {
                 onRemove={removePlayer}
                 potential={potentials.get(player.slug)?.potential}
                 age={potentials.get(player.slug)?.age}
+                contract={contracts.length > 0 ? matchContract(player.name, contracts) : undefined}
               />
             ))}
             {players.length === 0 && !error && (
@@ -247,10 +318,17 @@ export default function Home() {
         </main>
       </div>
 
+      <Toast
+        messages={toasts}
+        onDismiss={id => setToasts(prev => prev.filter(t => t.id !== id))}
+      />
+
       {showSaved && (
         <SavedList
           players={savedPlayers}
+          contracts={contracts}
           onRemove={removePlayer}
+          onClearAll={clearAll}
           onClose={() => setShowSaved(false)}
         />
       )}

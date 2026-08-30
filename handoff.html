@@ -1,0 +1,741 @@
+<title>GOAT LEAGUE — Handoff</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;700;900&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+
+<style>
+  :root {
+    --bg:        #f5f3ef;
+    --surface:   #ffffff;
+    --surface2:  #f0ede8;
+    --border:    #e0dbd3;
+    --border2:   #ccc7be;
+    --gold:      #a87800;
+    --gold-bg:   rgba(168,120,0,0.08);
+    --gold-dim:  rgba(168,120,0,0.25);
+    --text:      #1a1814;
+    --text-sec:  #6b6560;
+    --text-dim:  #b0aba4;
+    --green:     #1a7a3c;
+    --green-bg:  rgba(26,122,60,0.08);
+    --amber:     #c07000;
+    --amber-bg:  rgba(192,112,0,0.08);
+    --red:       #c0281a;
+    --red-bg:    rgba(192,40,26,0.08);
+    --code-bg:   #f0ede8;
+    --shadow:    0 1px 3px rgba(0,0,0,0.08);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg:        #080808;
+      --surface:   #111111;
+      --surface2:  #1a1a1a;
+      --border:    #252525;
+      --border2:   #333333;
+      --gold:      #d4a017;
+      --gold-bg:   rgba(212,160,23,0.1);
+      --gold-dim:  rgba(212,160,23,0.3);
+      --text:      #f0f0f0;
+      --text-sec:  #909090;
+      --text-dim:  #505050;
+      --green:     #4ade80;
+      --green-bg:  rgba(74,222,128,0.08);
+      --amber:     #fbbf24;
+      --amber-bg:  rgba(251,191,36,0.08);
+      --red:       #f87171;
+      --red-bg:    rgba(248,113,113,0.08);
+      --code-bg:   #161616;
+      --shadow:    0 1px 6px rgba(0,0,0,0.4);
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --bg:        #080808;
+    --surface:   #111111;
+    --surface2:  #1a1a1a;
+    --border:    #252525;
+    --border2:   #333333;
+    --gold:      #d4a017;
+    --gold-bg:   rgba(212,160,23,0.1);
+    --gold-dim:  rgba(212,160,23,0.3);
+    --text:      #f0f0f0;
+    --text-sec:  #909090;
+    --text-dim:  #505050;
+    --green:     #4ade80;
+    --green-bg:  rgba(74,222,128,0.08);
+    --amber:     #fbbf24;
+    --amber-bg:  rgba(251,191,36,0.08);
+    --red:       #f87171;
+    --red-bg:    rgba(248,113,113,0.08);
+    --code-bg:   #161616;
+    --shadow:    0 1px 6px rgba(0,0,0,0.4);
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 14px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .layout {
+    display: grid;
+    grid-template-columns: 220px 1fr;
+    min-height: 100vh;
+    max-width: 1100px;
+    margin: 0 auto;
+    gap: 0;
+  }
+
+  /* ── Sidebar ── */
+  .sidebar {
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    overflow-y: auto;
+    padding: 32px 20px 32px 24px;
+    border-right: 1px solid var(--border);
+    background: var(--surface);
+  }
+
+  .sidebar-brand {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 900;
+    font-size: 18px;
+    letter-spacing: .08em;
+    color: var(--gold);
+    text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+
+  .sidebar-sub {
+    font-size: 10px;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-bottom: 28px;
+  }
+
+  .nav-group { margin-bottom: 20px; }
+
+  .nav-label {
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: .15em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-bottom: 6px;
+    padding-left: 2px;
+  }
+
+  .nav-link {
+    display: block;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 12.5px;
+    color: var(--text-sec);
+    text-decoration: none;
+    transition: background .12s, color .12s;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .nav-link:hover { background: var(--surface2); color: var(--text); }
+  .nav-link.active { background: var(--gold-bg); color: var(--gold); }
+
+  /* ── Main content ── */
+  .content {
+    padding: 40px 48px 80px;
+    min-width: 0;
+  }
+
+  .page-header {
+    border-bottom: 2px solid var(--border);
+    padding-bottom: 24px;
+    margin-bottom: 40px;
+  }
+
+  .eyebrow {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: .18em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-bottom: 8px;
+  }
+
+  h1 {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 900;
+    font-size: 42px;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    color: var(--text);
+    line-height: 1;
+    text-wrap: balance;
+  }
+
+  h1 span { color: var(--gold); }
+
+  .page-meta {
+    display: flex;
+    gap: 20px;
+    margin-top: 16px;
+    flex-wrap: wrap;
+  }
+
+  .meta-item {
+    font-size: 12px;
+    color: var(--text-sec);
+  }
+
+  .meta-item strong { color: var(--text); font-weight: 600; }
+
+  /* ── Sections ── */
+  section { margin-bottom: 48px; }
+
+  h2 {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    font-size: 22px;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    color: var(--text);
+    margin-bottom: 16px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  h3 {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+    margin: 20px 0 8px;
+  }
+
+  p { color: var(--text-sec); margin-bottom: 12px; line-height: 1.65; }
+
+  /* ── Tables ── */
+  .table-wrap { overflow-x: auto; margin-bottom: 16px; }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12.5px;
+  }
+
+  thead th {
+    text-align: left;
+    padding: 7px 12px;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    background: var(--surface2);
+    border-bottom: 1px solid var(--border);
+  }
+
+  tbody td {
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--border);
+    color: var(--text-sec);
+    vertical-align: top;
+  }
+
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr:hover td { background: var(--surface2); }
+
+  td.mono, th.mono {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11.5px;
+    color: var(--text);
+  }
+
+  td.name { color: var(--text); font-weight: 500; }
+
+  /* ── Code ── */
+  pre, code {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+  }
+
+  code {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 1px 5px;
+    color: var(--gold);
+  }
+
+  pre {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 16px 18px;
+    overflow-x: auto;
+    margin-bottom: 16px;
+    line-height: 1.55;
+    color: var(--text);
+  }
+
+  pre code {
+    background: none;
+    border: none;
+    padding: 0;
+    color: inherit;
+  }
+
+  /* ── Badges ── */
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 10.5px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+
+  .badge::before { content: ''; width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0; }
+
+  .badge-done   { background: var(--green-bg); color: var(--green); }
+  .badge-done::before { background: var(--green); }
+  .badge-todo   { background: var(--amber-bg); color: var(--amber); }
+  .badge-todo::before { background: var(--amber); }
+  .badge-bug    { background: var(--red-bg); color: var(--red); }
+  .badge-bug::before { background: var(--red); }
+
+  /* ── Cards ── */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px 20px;
+    margin-bottom: 12px;
+    box-shadow: var(--shadow);
+  }
+
+  .card-title {
+    font-weight: 600;
+    font-size: 13px;
+    color: var(--text);
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+
+  .card p { margin-bottom: 0; font-size: 12.5px; }
+
+  /* ── File tree ── */
+  .file-tree {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    line-height: 1.8;
+    color: var(--text-sec);
+  }
+
+  .file-tree .dir  { color: var(--text); font-weight: 500; }
+  .file-tree .file { color: var(--text-sec); }
+  .file-tree .note { color: var(--text-dim); font-style: italic; }
+  .file-tree .new  { color: var(--gold); }
+  .file-tree .key  { color: var(--green); }
+
+  /* ── Command blocks ── */
+  .cmd-block {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--gold);
+    border-radius: 0 6px 6px 0;
+    padding: 12px 16px;
+    margin-bottom: 10px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--text);
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+  }
+
+  .cmd-block .prompt { color: var(--gold); user-select: none; flex-shrink: 0; }
+  .cmd-block .desc { color: var(--text-dim); font-style: italic; margin-left: auto; padding-left: 12px; font-size: 11px; }
+
+  /* ── Warn box ── */
+  .warn {
+    background: var(--amber-bg);
+    border: 1px solid var(--amber-dim, rgba(192,112,0,0.2));
+    border-left: 3px solid var(--amber);
+    border-radius: 0 6px 6px 0;
+    padding: 10px 14px;
+    margin-bottom: 12px;
+    font-size: 12.5px;
+    color: var(--text-sec);
+  }
+
+  .warn strong { color: var(--amber); }
+
+  /* ── Schema columns ── */
+  .schema-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+
+  @media (max-width: 700px) {
+    .layout { grid-template-columns: 1fr; }
+    .sidebar { position: static; height: auto; }
+    .content { padding: 24px 20px 60px; }
+    .schema-grid { grid-template-columns: 1fr; }
+  }
+
+  /* ── Divider ── */
+  hr { border: none; border-top: 1px solid var(--border); margin: 28px 0; }
+</style>
+
+<div class="layout">
+
+  <!-- Sidebar nav -->
+  <nav class="sidebar">
+    <div class="sidebar-brand">Goat League</div>
+    <div class="sidebar-sub">Handoff · Aug 2026</div>
+
+    <div class="nav-group">
+      <div class="nav-label">Overview</div>
+      <a class="nav-link" href="#stack">Stack</a>
+      <a class="nav-link" href="#env">Env Variables</a>
+      <a class="nav-link" href="#pages">Pagine & Route</a>
+    </div>
+
+    <div class="nav-group">
+      <div class="nav-label">Database</div>
+      <a class="nav-link" href="#schema">Schema Supabase</a>
+      <a class="nav-link" href="#seed">Seed Script</a>
+    </div>
+
+    <div class="nav-group">
+      <div class="nav-label">Architettura</div>
+      <a class="nav-link" href="#files">File Key</a>
+      <a class="nav-link" href="#cap">Cap Engine</a>
+      <a class="nav-link" href="#scorer">Player Scorer</a>
+    </div>
+
+    <div class="nav-group">
+      <div class="nav-label">Stato lavori</div>
+      <a class="nav-link" href="#done">Completato</a>
+      <a class="nav-link" href="#pending">In sospeso</a>
+      <a class="nav-link" href="#bugs">Bug noti</a>
+    </div>
+  </nav>
+
+  <!-- Main -->
+  <main class="content">
+
+    <div class="page-header">
+      <div class="eyebrow">Documento di handoff</div>
+      <h1>GOAT LEAGUE <span>PROJECT</span></h1>
+      <div class="page-meta">
+        <span class="meta-item"><strong>Framework</strong> Next.js 16.3.3 · App Router</span>
+        <span class="meta-item"><strong>DB</strong> Supabase (PostgreSQL + Auth)</span>
+        <span class="meta-item"><strong>Data</strong> 30 agosto 2026</span>
+        <span class="meta-item"><strong>Dir</strong> <code>my-nba-players-list/</code></span>
+      </div>
+    </div>
+
+    <!-- STACK -->
+    <section id="stack">
+      <h2>Stack</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Layer</th><th>Tecnologia</th><th>Note</th></tr></thead>
+          <tbody>
+            <tr><td class="name">Frontend</td><td class="mono">Next.js 16.3.3, React 19, TypeScript</td><td>App Router, tutto client-side dove indicato</td></tr>
+            <tr><td class="name">Stile</td><td class="mono">Tailwind CSS v4, globals.css</td><td>Design system custom: dark premium, palette gold/surface</td></tr>
+            <tr><td class="name">Auth</td><td class="mono">@supabase/ssr, @supabase/supabase-js</td><td>Email+password. Middleware protegge tutte le route tranne <code>/login</code> e <code>/reset-password</code></td></tr>
+            <tr><td class="name">Database</td><td class="mono">Supabase (PostgreSQL)</td><td>RLS attivo. Writes dal seed usano service role key</td></tr>
+            <tr><td class="name">Scraping</td><td class="mono">Playwright (chromium)</td><td>2kratings.com (potentials + età), basketball-reference (contratti, età fallback)</td></tr>
+            <tr><td class="name">Dati giocatori</td><td class="mono">nba2kapi.com bulk API</td><td>Endpoint <code>/api/players/bulk?teamType=curr</code>, richiede <code>X-API-Key</code></td></tr>
+            <tr><td class="name">Font</td><td class="mono">Barlow Condensed, Inter</td><td>Google Fonts. <code>.font-display</code> = Barlow</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ENV -->
+    <section id="env">
+      <h2>Variabili d'ambiente</h2>
+      <p>File <code>.env.local</code> — non committato. Richiesto in locale e su Vercel.</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Variabile</th><th>Dove si usa</th></tr></thead>
+          <tbody>
+            <tr><td class="mono">NEXT_PUBLIC_SUPABASE_URL</td><td>Client browser + seed script</td></tr>
+            <tr><td class="mono">NEXT_PUBLIC_SUPABASE_ANON_KEY</td><td>Client browser (lettura pubblica)</td></tr>
+            <tr><td class="mono">SUPABASE_SERVICE_ROLE_KEY</td><td>Solo seed script — write senza RLS</td></tr>
+            <tr><td class="mono">NBA2K_API_KEY</td><td>Seed script — fetch bulk players</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="warn"><strong>Attenzione:</strong> la <code>SERVICE_ROLE_KEY</code> bypassa tutte le RLS policies. Non esporla mai al browser.</div>
+    </section>
+
+    <!-- PAGES -->
+    <section id="pages">
+      <h2>Pagine & Route</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Route</th><th>File</th><th>Descrizione</th></tr></thead>
+          <tbody>
+            <tr><td class="mono">/</td><td class="mono">app/page.tsx</td><td>Player browser con filtri, salary cap toast, bottone "Il mio Squad"</td></tr>
+            <tr><td class="mono">/draft-builder</td><td class="mono">app/draft-builder/page.tsx</td><td>Squad builder con scoring a slider + filtro draft class + filtri posizione</td></tr>
+            <tr><td class="mono">/player/[slug]</td><td class="mono">app/player/[slug]/</td><td>Dettaglio giocatore</td></tr>
+            <tr><td class="mono">/login</td><td class="mono">app/login/page.tsx</td><td>Login / signup / reset password</td></tr>
+            <tr><td class="mono">/reset-password</td><td class="mono">app/reset-password/page.tsx</td><td>Form nuova password (post email link)</td></tr>
+            <tr><td class="mono">/api/players</td><td class="mono">app/api/players/route.ts</td><td>Lista giocatori da Supabase <code>players</code></td></tr>
+            <tr><td class="mono">/api/players/[slug]</td><td class="mono">app/api/players/[slug]/route.ts</td><td>Singolo giocatore per slug</td></tr>
+            <tr><td class="mono">/api/players/potentials</td><td class="mono">app/api/players/potentials/route.ts</td><td>Map slug→{potential, age} da <code>player_potentials</code></td></tr>
+            <tr><td class="mono">/api/contracts</td><td class="mono">app/api/contracts/route.ts</td><td>Lista contratti da Supabase <code>contracts</code></td></tr>
+            <tr><td class="mono">/api/draft/[year]</td><td class="mono">app/api/draft/[year]/route.ts</td><td>Draft class per anno</td></tr>
+            <tr><td class="mono">/api/teams</td><td class="mono">app/api/teams/route.ts</td><td>Lista team</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- SCHEMA -->
+    <section id="schema">
+      <h2>Schema Supabase</h2>
+      <div class="schema-grid">
+
+        <div class="card">
+          <div class="card-title">players <span class="badge badge-done">popolata</span></div>
+          <p>Fonte: nba2kapi.com bulk. Aggiornare con <code>node scripts/seed.mjs</code> (senza flag).</p>
+          <pre style="margin-top:10px;margin-bottom:0"><code>slug        text PRIMARY KEY
+data        jsonb  -- full player object
+updated_at  timestamptz</code></pre>
+        </div>
+
+        <div class="card">
+          <div class="card-title">player_potentials <span class="badge badge-done">popolata</span></div>
+          <p>Fonte: 2kratings.com (potentials) + basketball-reference (età fallback). 555 record con età.</p>
+          <pre style="margin-top:10px;margin-bottom:0"><code>slug        text PRIMARY KEY
+potential   text   -- A+/A/A-/B+/B/B-/C+/C/D
+age         integer
+updated_at  timestamptz</code></pre>
+        </div>
+
+        <div class="card">
+          <div class="card-title">contracts <span class="badge badge-done">popolata</span></div>
+          <p>Fonte: basketball-reference contracts page. 460 contratti. Colonna <code>age</code> aggiunta manualmente.</p>
+          <pre style="margin-top:10px;margin-bottom:0"><code>name            text PRIMARY KEY
+team            text
+age             integer
+salaries        jsonb  -- [{year, amount, note}]
+years_remaining integer
+updated_at      timestamptz</code></pre>
+        </div>
+
+        <div class="card">
+          <div class="card-title">saved_players <span class="badge badge-done">attiva</span></div>
+          <p>Roster personale per utente. RLS: ogni utente vede solo le proprie righe.</p>
+          <pre style="margin-top:10px;margin-bottom:0"><code>user_id     uuid REFERENCES auth.users
+slug        text
+player_data jsonb
+PRIMARY KEY (user_id, slug)</code></pre>
+        </div>
+
+      </div>
+
+      <div class="warn"><strong>SQL richiesto una tantum:</strong> <code>ALTER TABLE contracts ADD COLUMN IF NOT EXISTS age integer;</code> — già eseguito sul progetto corrente.</div>
+    </section>
+
+    <!-- SEED -->
+    <section id="seed">
+      <h2>Seed Script</h2>
+      <p>File: <code>scripts/seed.mjs</code>. Usa <code>SUPABASE_SERVICE_ROLE_KEY</code> per bypassare RLS.</p>
+
+      <div class="cmd-block"><span class="prompt">$</span> node scripts/seed.mjs<span class="desc">Full seed: players + potentials + contratti + età</span></div>
+      <div class="cmd-block"><span class="prompt">$</span> node scripts/seed.mjs --contracts-only<span class="desc">Solo contratti da basketball-reference</span></div>
+      <div class="cmd-block"><span class="prompt">$</span> node scripts/seed.mjs --ages-only<span class="desc">Età da 2kratings + bbref fallback (~20-30 min)</span></div>
+      <div class="cmd-block"><span class="prompt">$</span> node scripts/seed.mjs --diag=luka-doncic<span class="desc">Debug estrazione HTML su singolo giocatore</span></div>
+
+      <h3>Note scraping età</h3>
+      <p>2kratings.com espone <code>Birthdate: September 15, 1999</code> nell'HTML. Cloudflare blocca richieste singole fredde (come il diagnostico) ma non il seed completo che usa browser context con concurrency 5 e user-agent reale. Le 555 età attuali vengono da bbref <code>NBA_2026_per_game.html</code> (stagione 2025-26 completata) e sono accurate. Per aggiornare con date precise da 2kratings, lanciare <code>--ages-only</code>.</p>
+    </section>
+
+    <!-- FILES -->
+    <section id="files">
+      <h2>File Key</h2>
+      <div class="card" style="padding: 16px 20px;">
+        <pre style="margin:0; background:none; border:none; padding:0; font-size:12px; line-height:1.9;"><code class="file-tree"><span class="dir">app/</span>
+  <span class="key">page.tsx</span>               <span class="note">← home: browser + toast cap + squad drawer</span>
+  <span class="key">draft-builder/page.tsx</span> <span class="note">← squad builder con sliders (NUOVO)</span>
+  <span class="dir">api/contracts/</span>
+    <span class="file">route.ts</span>             <span class="note">← ContractEntry interface + GET da Supabase</span>
+  <span class="dir">login/, reset-password/</span>  <span class="note">← auth pages</span>
+
+<span class="dir">components/</span>
+  <span class="key">PlayerCard.tsx</span>         <span class="note">← card con blocco DURATA/VALORE/OPZIONE + FA badge</span>
+  <span class="key">SavedList.tsx</span>          <span class="note">← drawer "Il mio Squad" con CapPanel integrato</span>
+  <span class="new">CapPanel.tsx</span>           <span class="note">← salary monitor visivo (NUOVO)</span>
+  <span class="new">Toast.tsx</span>              <span class="note">← notifiche soglia cap (NUOVO)</span>
+  <span class="file">Filters.tsx</span>
+
+<span class="dir">hooks/</span>
+  <span class="key">useSavedPlayers.ts</span>     <span class="note">← savePlayer / removePlayer / clearAll → Supabase</span>
+  <span class="file">usePotentials.ts</span>
+
+<span class="dir">lib/</span>
+  <span class="dir">supabase/client.ts</span>     <span class="note">← createBrowserClient</span>
+  <span class="new">nba/seasonRules.ts</span>     <span class="note">← SEASON_2026_27: cap, floor, aprons, MLE (NUOVO)</span>
+  <span class="new">nba/capAnalyzer.ts</span>     <span class="note">← analyzeTeam() → CapAnalysis (NUOVO)</span>
+  <span class="new">nba/playerScorer.ts</span>    <span class="note">← scorePlayer() → 4 sub-scores (NUOVO)</span>
+
+<span class="dir">scripts/</span>
+  <span class="key">seed.mjs</span>               <span class="note">← seed Supabase (players/potentials/contracts/ages)
+
+<span class="file">middleware.ts</span>              <span class="note">← redirect non-auth → /login</span></code></pre>
+      </div>
+    </section>
+
+    <!-- CAP ENGINE -->
+    <section id="cap">
+      <h2>Cap Engine</h2>
+      <p>Logica pura separata dalla UI. Tutte le soglie vengono da <code>CURRENT_SEASON</code> — per aggiornare a una nuova stagione modifica solo <code>lib/nba/seasonRules.ts</code>.</p>
+
+      <h3>Soglie 2026-27</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Soglia</th><th class="mono">Valore</th><th>Status attivato</th></tr></thead>
+          <tbody>
+            <tr><td>Salary Floor</td><td class="mono">$148.465M</td><td><code>BELOW_FLOOR</code></td></tr>
+            <tr><td>Salary Cap</td><td class="mono">$164.961M</td><td><code>UNDER_CAP</code> / <code>OVER_CAP_UNDER_TAX</code></td></tr>
+            <tr><td>Luxury Tax Line</td><td class="mono">$200.428M</td><td><code>LUXURY_TAX</code></td></tr>
+            <tr><td>First Apron</td><td class="mono">$209.015M</td><td><code>FIRST_APRON</code></td></tr>
+            <tr><td>Second Apron</td><td class="mono">$221.686M</td><td><code>SECOND_APRON</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>MLE disponibili per status</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Status</th><th>Eccezione</th><th class="mono">Valore</th></tr></thead>
+          <tbody>
+            <tr><td><code>BELOW_FLOOR</code> / <code>UNDER_CAP</code></td><td>Room MLE</td><td class="mono">$9.366M</td></tr>
+            <tr><td><code>OVER_CAP_UNDER_TAX</code></td><td>Non-Taxpayer MLE</td><td class="mono">$15.044M</td></tr>
+            <tr><td><code>LUXURY_TAX</code> / <code>FIRST_APRON</code></td><td>Taxpayer MLE</td><td class="mono">$6.064M</td></tr>
+            <tr><td><code>SECOND_APRON</code></td><td>— nessuna</td><td class="mono">—</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- SCORER -->
+    <section id="scorer">
+      <h2>Player Scorer</h2>
+      <p>Ogni giocatore riceve 4 sub-score 0–100 calcolati in <code>lib/nba/playerScorer.ts</code>. Il total è la media pesata dagli slider dell'utente.</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Dimensione</th><th>Input</th><th>Formula chiave</th></tr></thead>
+          <tbody>
+            <tr><td class="name">REBUILD</td><td><code>age</code>, <code>potential</code></td><td>ageScore(age)×0.55 + potScore×0.45. null age → 5 (penalizzato)</td></tr>
+            <tr><td class="name">WIN NOW</td><td><code>overall</code></td><td>Scala da 0 (OVR≤65) a 100 (OVR≥95)</td></tr>
+            <tr><td class="name">VALUE HUNT</td><td>14 attributi chiave vs <code>overall</code></td><td>Somma di max(0, attr−(OVR−3)) per attributi ≥75, normalizzata</td></tr>
+            <tr><td class="name">TEAM FRIENDLY</td><td><code>years_remaining</code>, salary, note</td><td>yearsScore×0.45 + salaryScore×0.55 ± optionBonus</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>Attributi usati per VALUE HUNT: <code>threePointShot</code>, <code>drivingDunk</code>, <code>closeShot</code>, <code>drivingLayup</code>, <code>speed</code>, <code>agility</code>, <code>vertical</code>, <code>strength</code>, <code>steal</code>, <code>block</code>, <code>perimeterDefense</code>, <code>ballHandle</code>, <code>passIQ</code>, <code>speedWithBall</code>.</p>
+    </section>
+
+    <hr>
+
+    <!-- DONE -->
+    <section id="done">
+      <h2>Completato</h2>
+
+      <div class="card">
+        <div class="card-title">Auth Supabase <span class="badge badge-done">done</span></div>
+        <p>Login / signup / recupera password. Middleware redirect su tutte le route. Reset password via link email.</p>
+      </div>
+
+      <div class="card">
+        <div class="card-title">DB pre-popolato <span class="badge badge-done">done</span></div>
+        <p>~500 giocatori, 460 contratti, 555 età, potentials per tutti i giocatori presenti su 2kratings. Nessun scraping real-time.</p>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Player Browser <span class="badge badge-done">done</span></div>
+        <p>Lista con OVR, attributi, potenziale, contratto (DURATA/VALORE/OPZIONE), badge FA. Filtri sidebar. Diacritici normalizzati nel matching contratti.</p>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Squad Builder — Salary Monitor <span class="badge badge-done">done</span></div>
+        <p>Drawer "Il mio Squad" con CapPanel: salary totale, status, distanza da ogni soglia, MLE disponibile. Toast notifiche al cambio di status cap.</p>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Draft Builder <span class="badge badge-done">done</span></div>
+        <p>Pagina con 4 slider (REBUILD / WIN NOW / VALUE HUNT / TEAM FRIENDLY), scoring real-time, filtro Draft Class per anno, filtri posizione, squad drawer integrato.</p>
+      </div>
+    </section>
+
+    <!-- PENDING -->
+    <section id="pending">
+      <h2>In sospeso</h2>
+
+      <div class="card">
+        <div class="card-title">Deploy Vercel <span class="badge badge-todo">todo</span></div>
+        <p>Non ancora deployato. Aggiungere le 4 env var su Vercel. Il seed va eseguito localmente (Playwright non funziona in ambiente serverless).</p>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Età da 2kratings <span class="badge badge-todo">todo</span></div>
+        <p>Le 555 età attuali vengono da bbref 2025-26. Per date di nascita precise: <code>node scripts/seed.mjs --ages-only</code> (~25 min). La regex per <code>Birthdate: September 15, 1999</code> è già implementata.</p>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Aggiornamento stagionale dati <span class="badge badge-todo">todo</span></div>
+        <p>Quando escono i rating 2K27 definitivi, lanciare il seed completo. Aggiornare <code>lib/nba/seasonRules.ts</code> con le soglie cap della stagione corrente.</p>
+      </div>
+    </section>
+
+    <!-- BUGS -->
+    <section id="bugs">
+      <h2>Bug noti</h2>
+
+      <div class="card">
+        <div class="card-title">Filtro posizione Draft Builder non funziona <span class="badge badge-bug">bug</span></div>
+        <p>Il filtro PG/SG/SF/PF/C nell'header del Draft Builder non filtra correttamente la lista. Il <code>posFilter</code> state esiste e la condizione <code>p.positions.includes(posFilter)</code> è nel memo, ma il risultato non viene applicato. Da investigare: possibile problema di dipendenze nel <code>useMemo</code> o il campo <code>positions</code> nell'oggetto player ha una struttura diversa da quella attesa.</p>
+      </div>
+
+    </section>
+
+  </main>
+</div>
+
+<script>
+  // Highlight active nav link on scroll
+  const sections = document.querySelectorAll('section[id]')
+  const links = document.querySelectorAll('.nav-link')
+
+  const obs = new IntersectionObserver(entries => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        links.forEach(l => l.classList.remove('active'))
+        const active = document.querySelector(`.nav-link[href="#${e.target.id}"]`)
+        if (active) active.classList.add('active')
+      }
+    })
+  }, { rootMargin: '-30% 0px -60% 0px' })
+
+  sections.forEach(s => obs.observe(s))
+</script>

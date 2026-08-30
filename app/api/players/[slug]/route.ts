@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { createClient } from '@supabase/supabase-js'
 
-const API_BASE = 'https://api.nba2kapi.com'
-const API_KEY = process.env.NBA2K_API_KEY!
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+)
 
 export async function GET(
   _request: NextRequest,
@@ -9,20 +12,15 @@ export async function GET(
 ) {
   const { slug } = await params
 
-  try {
-    const res = await fetch(`${API_BASE}/api/players/slug/${slug}?teamType=curr`, {
-      headers: { 'X-API-Key': API_KEY },
-      next: { revalidate: 300 },
-    })
+  const { data, error } = await supabase
+    .from('players')
+    .select('data')
+    .eq('slug', slug)
+    .single()
 
-    const data = await res.json()
-
-    if (!res.ok) {
-      return NextResponse.json(data, { status: res.status })
-    }
-
-    return NextResponse.json(data)
-  } catch {
-    return NextResponse.json({ success: false, error: { message: 'Failed to fetch player' } }, { status: 500 })
+  if (error || !data) {
+    return NextResponse.json({ success: false, error: { message: 'Player not found' } }, { status: 404 })
   }
+
+  return NextResponse.json({ success: true, data: data.data })
 }
