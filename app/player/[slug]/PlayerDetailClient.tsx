@@ -75,7 +75,7 @@ export default function PlayerDetailClient({ player }: Props) {
   const [potential, setPotential] = useState<string | null>(null)
   const [age, setAge] = useState<number | null>(null)
   const [potentialLoading, setPotentialLoading] = useState(true)
-  const [contract, setContract] = useState<ContractEntry | null>(null)
+  const [contract, setContract] = useState<ContractEntry | null | undefined>(undefined)
 
   useEffect(() => {
     fetch(`/api/players/${player.slug}/potential`)
@@ -166,7 +166,7 @@ export default function PlayerDetailClient({ player }: Props) {
               ['Università', player.college],
               ['Versione', player.gameVersion],
               ['Età', age != null ? `${age} anni` : null],
-              ['Contratto', contract ? `${contract.years_remaining} ${contract.years_remaining === 1 ? 'anno' : 'anni'}` : contract === null ? 'Free Agent' : null],
+              ['Contratto', contract === undefined ? null : contract ? `${contract.years_remaining} ${contract.years_remaining === 1 ? 'anno' : 'anni'}` : 'Free Agent'],
               ['Opzione', contract?.salaries[0]?.note === 'PO' ? 'Player Option' : contract?.salaries[0]?.note === 'TO' ? 'Team Option' : contract?.salaries[0]?.note === 'QO' ? 'Qualifying Offer' : null],
             ].map(([label, val]) => val ? (
               <div key={label as string}>
