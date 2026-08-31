@@ -114,8 +114,9 @@ export default function PlayerDetailClient({ player }: Props) {
             <h1 className="font-display text-4xl font-bold tracking-wide leading-tight" style={{ color: 'var(--text)' }}>
               {player.name}
             </h1>
-            <div className="flex items-center gap-2 mt-1">
-              <TeamLogo team={player.team} size={28} />
+            <div className="flex items-center gap-2 mt-2">
+              <TeamLogo team={player.team} size={32} />
+              <span className="text-sm font-medium" style={{ color: 'var(--text-sec)' }}>{player.team}</span>
             </div>
             {player.archetype && (
               <p className="text-sm mt-0.5 font-medium" style={{ color: 'var(--gold)' }}>{player.archetype}</p>

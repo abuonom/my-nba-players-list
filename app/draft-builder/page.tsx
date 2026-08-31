@@ -708,10 +708,10 @@ function DraftBuilderRow({
 
   return (
     <div
-      className="flex items-center gap-3 px-4 py-3 rounded-xl border"
+      className="flex items-center gap-3 px-4 py-3 rounded-xl border transition-colors duration-150 hover:border-[var(--border2)]"
       style={{
         background: 'var(--surface)',
-        borderColor: isDrafted ? 'rgba(148,163,184,0.2)' : 'var(--border2)',
+        borderColor: isDrafted ? 'rgba(148,163,184,0.15)' : 'var(--border)',
         opacity: isDrafted ? 0.45 : 1,
       }}
     >
@@ -750,7 +750,7 @@ function DraftBuilderRow({
           </div>
         )}
         <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-          <TeamLogo team={player.team} size={20} />
+          <TeamLogo team={player.team} size={18} showAbbr />
           {age != null && (
             <>
               <span style={{ color: 'var(--text-dim)' }}>·</span>
@@ -864,16 +864,18 @@ function DraftBuilderRow({
       </div>
 
       {/* Score breakdown — only active dimensions */}
-      <div className="hidden lg:flex flex-col gap-1 w-48 shrink-0">
-        {PROFILES.filter(p => weights[p.key] > 0).map(p => (
-          <div key={p.key} className="flex items-center gap-2">
-            <span className="text-[9px] font-bold w-16 uppercase tracking-wide shrink-0" style={{ color: p.color }}>
-              {p.label}
-            </span>
-            <ScoreBar value={score[p.key]} color={p.color} />
-          </div>
-        ))}
-      </div>
+      {PROFILES.some(p => weights[p.key] > 0) && (
+        <div className="hidden lg:flex flex-col gap-1 w-48 shrink-0">
+          {PROFILES.filter(p => weights[p.key] > 0).map(p => (
+            <div key={p.key} className="flex items-center gap-2">
+              <span className="text-[9px] font-bold w-16 uppercase tracking-wide shrink-0" style={{ color: p.color }}>
+                {p.label}
+              </span>
+              <ScoreBar value={score[p.key]} color={p.color} />
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Actions */}
       <div className="flex flex-col gap-1.5 shrink-0">

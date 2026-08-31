@@ -85,7 +85,7 @@ export default function PlayerCard({ player, isSaved, onSave, onRemove, potentia
           </div>
         )}
         <div className="flex items-center gap-2 mt-0.5">
-          <TeamLogo team={player.team} size={24} />
+          <TeamLogo team={player.team} size={18} showAbbr />
           {age != null && (
             <>
               <span style={{ color: 'var(--text-dim)' }}>·</span>
