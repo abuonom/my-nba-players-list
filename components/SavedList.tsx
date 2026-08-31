@@ -5,6 +5,7 @@ import { Player } from '@/types/nba'
 import type { ContractEntry } from '@/app/api/contracts/route'
 import CapPanel from './CapPanel'
 import { matchContract } from '@/lib/nba/matchContract'
+import TeamLogo from './TeamLogo'
 
 interface Props {
   players: Player[]
@@ -104,8 +105,9 @@ export default function SavedList({ players, contracts, onRemove, onClearAll, on
                       <div className="font-display font-bold text-base leading-tight truncate" style={{ color: 'var(--text)' }}>
                         {player.name}
                       </div>
-                      <div className="text-xs truncate mt-0.5" style={{ color: 'var(--text-sec)' }}>
-                        {player.team} · {player.positions.join('/')}
+                      <div className="flex items-center gap-1.5 mt-0.5">
+                        <TeamLogo team={player.team} size={18} />
+                        <span className="text-xs truncate" style={{ color: 'var(--text-sec)' }}>{player.positions.join('/')}</span>
                       </div>
                     </div>
                     <div className="text-right shrink-0">

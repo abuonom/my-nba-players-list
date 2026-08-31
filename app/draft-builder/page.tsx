@@ -13,6 +13,7 @@ import Toast from '@/components/Toast'
 import { createClient } from '@/lib/supabase/client'
 import { matchContract } from '@/lib/nba/matchContract'
 import AttributeFilterPicker, { AttrFilter, ATTRS } from '@/components/AttributeFilterPicker'
+import TeamLogo from '@/components/TeamLogo'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -749,7 +750,7 @@ function DraftBuilderRow({
           </div>
         )}
         <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-          <span className="text-xs" style={{ color: 'var(--text-sec)' }}>{player.team}</span>
+          <TeamLogo team={player.team} size={20} />
           {age != null && (
             <>
               <span style={{ color: 'var(--text-dim)' }}>·</span>

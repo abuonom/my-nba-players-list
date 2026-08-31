@@ -4,6 +4,7 @@ import { Player } from '@/types/nba'
 import type { ContractEntry } from '@/app/api/contracts/route'
 import type { AttrFilter } from './AttributeFilterPicker'
 import { ATTRS } from './AttributeFilterPicker'
+import TeamLogo from './TeamLogo'
 
 function formatSalary(n: number) {
   if (n >= 1_000_000) return `$${(n / 1_000_000).toFixed(1)}M`
@@ -84,7 +85,7 @@ export default function PlayerCard({ player, isSaved, onSave, onRemove, potentia
           </div>
         )}
         <div className="flex items-center gap-2 mt-0.5">
-          <span className="text-xs" style={{ color: 'var(--text-sec)' }}>{player.team}</span>
+          <TeamLogo team={player.team} size={24} />
           {age != null && (
             <>
               <span style={{ color: 'var(--text-dim)' }}>·</span>

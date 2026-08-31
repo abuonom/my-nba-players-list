@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { Player } from '@/types/nba'
 import { useSavedPlayers } from '@/hooks/useSavedPlayers'
 import { ContractEntry } from '@/app/api/contracts/route'
+import TeamLogo from '@/components/TeamLogo'
 
 interface Props { player: Player }
 
@@ -113,7 +114,9 @@ export default function PlayerDetailClient({ player }: Props) {
             <h1 className="font-display text-4xl font-bold tracking-wide leading-tight" style={{ color: 'var(--text)' }}>
               {player.name}
             </h1>
-            <p className="text-base mt-1" style={{ color: 'var(--text-sec)' }}>{player.team}</p>
+            <div className="flex items-center gap-2 mt-1">
+              <TeamLogo team={player.team} size={28} />
+            </div>
             {player.archetype && (
               <p className="text-sm mt-0.5 font-medium" style={{ color: 'var(--gold)' }}>{player.archetype}</p>
             )}
