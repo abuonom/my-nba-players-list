@@ -34,8 +34,8 @@ export default function LoginPage() {
         options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
       })
       if (error) { setError(error.message); setLoading(false); return }
-      setMessage('Controlla la tua email per confermare la registrazione.')
-      setLoading(false)
+      router.push('/')
+      router.refresh()
     } else {
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: `${window.location.origin}/reset-password`,
