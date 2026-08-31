@@ -97,22 +97,25 @@ function ScoreBar({ value, color }: { value: number; color: string }) {
 
 // ── Total score ring ─────────────────────────────────────────────────────────
 
-function TotalScore({ score, rank }: { score: number; rank: number }) {
+function TotalScore({ score, rank, active }: { score: number; rank: number; active: boolean }) {
   const color = score >= 75 ? '#fde047' : score >= 55 ? '#4ade80' : score >= 35 ? '#60a5fa' : 'var(--text-sec)'
   return (
-    <div className="flex flex-col items-center w-14 shrink-0">
-      <div className="text-[9px] uppercase tracking-widest mb-0.5" style={{ color: 'var(--text-dim)' }}>#{rank}</div>
-      <div
-        className="w-12 h-12 rounded-full flex items-center justify-center font-display text-xl font-black"
-        style={{
-          background: `conic-gradient(${color} ${score * 3.6}deg, var(--border) 0deg)`,
-          padding: 3,
-        }}
-      >
-        <div className="w-full h-full rounded-full flex items-center justify-center" style={{ background: 'var(--surface)' }}>
-          <span style={{ color }}>{score}</span>
-        </div>
-      </div>
+    <div className="flex flex-col items-center w-10 shrink-0">
+      {active ? (
+        <>
+          <div className="text-[9px] uppercase tracking-widest mb-0.5" style={{ color: 'var(--text-dim)' }}>#{rank}</div>
+          <div
+            className="w-10 h-10 rounded-full flex items-center justify-center font-display text-lg font-black"
+            style={{ background: `conic-gradient(${color} ${score * 3.6}deg, var(--border) 0deg)`, padding: 3 }}
+          >
+            <div className="w-full h-full rounded-full flex items-center justify-center" style={{ background: 'var(--surface)' }}>
+              <span style={{ color }}>{score}</span>
+            </div>
+          </div>
+        </>
+      ) : (
+        <div className="font-display text-sm font-black tabular-nums" style={{ color: 'var(--text-dim)' }}>#{rank}</div>
+      )}
     </div>
   )
 }
@@ -708,15 +711,15 @@ function DraftBuilderRow({
 
   return (
     <div
-      className="flex items-center gap-3 px-4 py-3 rounded-xl border transition-colors duration-150 hover:border-[var(--border2)]"
+      className="flex items-center gap-3 px-4 py-3 rounded-xl border transition-colors duration-150 hover:border-[var(--gold-dim)]"
       style={{
         background: 'var(--surface)',
-        borderColor: isDrafted ? 'rgba(148,163,184,0.15)' : 'var(--border)',
+        borderColor: isDrafted ? 'rgba(148,163,184,0.2)' : 'var(--border2)',
         opacity: isDrafted ? 0.45 : 1,
       }}
     >
       {/* Rank + score ring */}
-      <TotalScore score={score.total} rank={rank} />
+      <TotalScore score={score.total} rank={rank} active={PROFILES.some(p => weights[p.key] > 0)} />
 
       {/* OVR */}
       <div
@@ -845,8 +848,8 @@ function DraftBuilderRow({
         ) : null}
       </div>
 
-      {/* Badge tier counters */}
-      <div className="hidden lg:grid shrink-0" style={{ gridTemplateColumns: 'repeat(3, 1fr)', gap: '4px', width: '7rem' }}>
+      {/* Badge tier counters — always 2 cols, hidden badges keep space */}
+      <div className="hidden lg:grid shrink-0" style={{ gridTemplateColumns: 'repeat(2, minmax(3rem, auto))', gap: '3px' }}>
         {BADGE_TIERS.map(({ tier, short, color, bg, border, shadow }) => {
           const count = player.badges?.list?.filter(b => b.tier === tier).length ?? 0
           return (
@@ -854,10 +857,10 @@ function DraftBuilderRow({
               key={tier}
               className="inline-flex items-baseline gap-0.5 px-1.5 py-0.5 rounded font-bold"
               style={{
-                background: count > 0 ? bg : 'transparent',
-                color: count > 0 ? color : 'transparent',
-                border: `1px solid ${count > 0 ? border : 'transparent'}`,
-                boxShadow: count > 0 ? shadow : 'none',
+                background: bg,
+                color,
+                border: `1px solid ${border}`,
+                boxShadow: shadow,
                 visibility: count > 0 ? 'visible' : 'hidden',
               }}
             >
