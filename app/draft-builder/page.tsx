@@ -230,7 +230,6 @@ export default function DraftBuilderPage() {
   // Drafted (hidden) players — per-user localStorage
   const [userId, setUserId] = useState<string | null>(null)
   const [draftedSlugs, setDraftedSlugs] = useState<Set<string>>(new Set())
-  const [showDrafted, setShowDrafted] = useState(false)
   const { savedPlayers, isSaved, savePlayer, removePlayer, clearAll } = useSavedPlayers()
   const { toasts, dismissToast } = useCapToasts(savedPlayers, contracts)
 
@@ -337,7 +336,7 @@ export default function DraftBuilderPage() {
       .filter(p => !posFilter || p.positions.includes(posFilter))
       .filter(p => attrFilters.every(f => (p.attributes[f.key] ?? 0) >= f.min))
       .filter(p => !activeDraftSlugs || activeDraftSlugs.has(p.slug))
-      .filter(p => showDrafted || !draftedSlugs.has(p.slug))
+      .filter(p => !draftedSlugs.has(p.slug))
       .map(p => {
         const extra = potentials.get(p.slug)
         const contract = contracts.length > 0 ? matchContract(p.name, contracts) : undefined
@@ -350,7 +349,7 @@ export default function DraftBuilderPage() {
           ? b.player.overall - a.player.overall
           : b.score.total - a.score.total
       )
-  }, [players, potentials, contracts, weights, minOvr, search, posFilter, attrFilters, activeDraftSlugs, draftPicks, totalActive, draftedSlugs, showDrafted])
+  }, [players, potentials, contracts, weights, minOvr, search, posFilter, attrFilters, activeDraftSlugs, draftPicks, totalActive, draftedSlugs])
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg)' }}>
@@ -565,37 +564,33 @@ export default function DraftBuilderPage() {
             {draftedSlugs.size > 0 && (
               <div className="rounded-xl p-4 space-y-3" style={{ background: 'var(--surface)', border: '1px solid var(--border2)' }}>
                 <div className="flex items-center justify-between">
-                  <div>
-                    <div className="font-display text-base font-black tracking-wider mb-0.5" style={{ color: 'var(--text)' }}>
-                      GIÀ DRAFTATI
-                    </div>
-                    <div className="text-[10px]" style={{ color: 'var(--text-dim)' }}>
-                      {draftedSlugs.size} nascosti
-                    </div>
+                  <div className="font-display text-base font-black tracking-wider" style={{ color: 'var(--text)' }}>
+                    GIÀ DRAFTATI
                   </div>
-                  <span
-                    className="font-display text-2xl font-black tabular-nums"
-                    style={{ color: 'var(--text-sec)' }}
-                  >
+                  <span className="font-display text-2xl font-black tabular-nums" style={{ color: 'var(--text-sec)' }}>
                     {draftedSlugs.size}
                   </span>
                 </div>
-                <button
-                  onClick={() => setShowDrafted(v => !v)}
-                  className="w-full py-1.5 rounded-lg text-xs font-semibold transition-colors"
-                  style={showDrafted
-                    ? { background: 'rgba(148,163,184,0.15)', color: 'var(--text-sec)', border: '1px solid var(--border2)' }
-                    : { background: 'var(--surface2)', color: 'var(--text-sec)', border: '1px solid var(--border)' }
-                  }
-                >
-                  {showDrafted ? 'Nascondi' : 'Mostra'}
-                </button>
+                <div className="space-y-1 max-h-48 overflow-y-auto">
+                  {players.filter(p => draftedSlugs.has(p.slug)).map(p => (
+                    <div key={p.slug} className="flex items-center justify-between gap-2 text-xs py-0.5">
+                      <span className="truncate" style={{ color: 'var(--text-sec)' }}>{p.name}</span>
+                      <button
+                        onClick={() => toggleDrafted(p.slug)}
+                        className="shrink-0 text-[10px] font-semibold px-1.5 py-0.5 rounded"
+                        style={{ color: 'var(--text-dim)', background: 'var(--surface2)', border: '1px solid var(--border)' }}
+                      >
+                        ↩
+                      </button>
+                    </div>
+                  ))}
+                </div>
                 <button
                   onClick={clearDrafted}
                   className="w-full py-1.5 rounded-lg text-xs font-semibold"
                   style={{ color: '#f87171', background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)' }}
                 >
-                  Reset lista
+                  Svuota lista
                 </button>
               </div>
             )}
@@ -634,19 +629,8 @@ export default function DraftBuilderPage() {
 
         {/* Main — player list */}
         <main className="flex-1 min-w-0">
-          <div className="flex items-center justify-between mb-3">
-            <div className="text-xs" style={{ color: 'var(--text-dim)' }}>
-              {loading ? 'Caricamento...' : `${scored.length} giocatori`}
-            </div>
-            {draftedSlugs.size > 0 && (
-              <button
-                onClick={() => setShowDrafted(v => !v)}
-                className="text-xs font-semibold px-2.5 py-1 rounded-lg"
-                style={{ background: 'var(--surface2)', color: 'var(--text-dim)', border: '1px solid var(--border)' }}
-              >
-                {draftedSlugs.size} draftati {showDrafted ? '(nascondo)' : '(mostra)'}
-              </button>
-            )}
+          <div className="text-xs mb-3" style={{ color: 'var(--text-dim)' }}>
+            {loading ? 'Caricamento...' : `${scored.length} giocatori`}
           </div>
 
           {loading ? (
