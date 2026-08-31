@@ -288,6 +288,41 @@ export default function PlayerDetailClient({ player }: Props) {
             <h2 className="font-display text-sm font-bold uppercase tracking-widest mb-4" style={{ color: 'var(--text-sec)' }}>
               Badge <span className="font-normal normal-case tracking-normal" style={{ color: 'var(--text-dim)' }}>({totalBadges})</span>
             </h2>
+
+            {/* Contatori per tier */}
+            <div className="grid grid-cols-3 sm:grid-cols-5 gap-2 mb-5">
+              {TIER_ORDER.map(tier => {
+                const count = badgesByTier[tier]?.length ?? 0
+                const s = BADGE_STYLES[tier]
+                return (
+                  <div
+                    key={tier}
+                    className="flex flex-col items-center justify-center py-3 rounded-xl"
+                    style={{
+                      background: s.bg,
+                      border: `1px solid ${s.border}`,
+                      boxShadow: s.shadow,
+                      opacity: count === 0 ? 0.3 : 1,
+                    }}
+                  >
+                    <span
+                      className="font-display text-5xl font-black leading-none tabular-nums"
+                      style={{ color: s.color }}
+                    >
+                      {count}
+                    </span>
+                    <span
+                      className="text-[9px] uppercase tracking-widest font-bold mt-1.5"
+                      style={{ color: s.color }}
+                    >
+                      {tier}
+                    </span>
+                  </div>
+                )
+              })}
+            </div>
+
+            {/* Lista badge per tier */}
             <div className="space-y-4">
               {TIER_ORDER.map(tier => {
                 const list = badgesByTier[tier]
@@ -296,7 +331,7 @@ export default function PlayerDetailClient({ player }: Props) {
                 return (
                   <div key={tier}>
                     <div className="text-[10px] uppercase tracking-widest mb-2 font-semibold" style={{ color: 'var(--text-dim)' }}>
-                      {tier} ({list.length})
+                      {tier}
                     </div>
                     <div className="flex flex-wrap gap-1.5">
                       {list.map(badge => (
