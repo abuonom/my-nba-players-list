@@ -39,20 +39,26 @@ const ATTR_SECTIONS = [
   ]},
 ]
 
-const BADGE_STYLES: Record<string, { bg: string; color: string; border: string; shadow?: string }> = {
-  'Legend':       { bg: 'rgba(239,68,68,0.2)',   color: '#fca5a5', border: 'rgba(239,68,68,0.5)',   shadow: '0 0 8px rgba(239,68,68,0.4)' },
-  'Hall of Fame': { bg: 'rgba(168,85,247,0.2)',  color: '#d8b4fe', border: 'rgba(168,85,247,0.5)',  shadow: '0 0 8px rgba(168,85,247,0.3)' },
-  'Gold':         { bg: 'rgba(234,179,8,0.2)',   color: '#fde047', border: 'rgba(234,179,8,0.5)' },
-  'Silver':       { bg: 'rgba(148,163,184,0.15)', color: '#cbd5e1', border: 'rgba(148,163,184,0.4)' },
-  'Bronze':       { bg: 'rgba(180,83,9,0.2)',    color: '#fdba74', border: 'rgba(180,83,9,0.5)' },
-}
+const BADGE_TIERS = [
+  { tier: 'Legend',       color: '#fca5a5', bg: 'rgba(239,68,68,0.2)',    border: 'rgba(239,68,68,0.5)',    shadow: '0 0 8px rgba(239,68,68,0.4)' },
+  { tier: 'Hall of Fame', color: '#d8b4fe', bg: 'rgba(168,85,247,0.2)',   border: 'rgba(168,85,247,0.5)',   shadow: '0 0 8px rgba(168,85,247,0.3)' },
+  { tier: 'Gold',         color: '#fde047', bg: 'rgba(234,179,8,0.2)',    border: 'rgba(234,179,8,0.5)' },
+  { tier: 'Silver',       color: '#cbd5e1', bg: 'rgba(148,163,184,0.15)', border: 'rgba(148,163,184,0.4)' },
+  { tier: 'Bronze',       color: '#fdba74', bg: 'rgba(180,83,9,0.2)',     border: 'rgba(180,83,9,0.5)' },
+]
 
-const TIER_ORDER = ['Legend', 'Hall of Fame', 'Gold', 'Silver', 'Bronze']
+const TIER_ORDER = BADGE_TIERS.map(b => b.tier)
 
-const POTENTIAL_STYLE: Record<string, string> = {
-  'A+': 'text-yellow-300', 'A': 'text-green-400',
-  'B+': 'text-blue-400',   'B': 'text-blue-300',
-  'C+': 'text-slate-300',  'C': 'text-slate-400', 'D': 'text-red-400',
+const POTENTIAL_STYLE: Record<string, { color: string; bg: string }> = {
+  'A+': { color: '#fde047', bg: 'rgba(234,179,8,0.15)' },
+  'A':  { color: '#86efac', bg: 'rgba(34,197,94,0.12)' },
+  'A-': { color: '#4ade80', bg: 'rgba(34,197,94,0.08)' },
+  'B+': { color: '#93c5fd', bg: 'rgba(59,130,246,0.12)' },
+  'B':  { color: '#7dd3fc', bg: 'rgba(14,165,233,0.1)' },
+  'B-': { color: '#60a5fa', bg: 'rgba(59,130,246,0.07)' },
+  'C+': { color: '#cbd5e1', bg: 'rgba(148,163,184,0.1)' },
+  'C':  { color: '#94a3b8', bg: 'rgba(100,116,139,0.1)' },
+  'D':  { color: '#fca5a5', bg: 'rgba(239,68,68,0.1)' },
 }
 
 function ovrColor(ovr: number) {
@@ -61,6 +67,14 @@ function ovrColor(ovr: number) {
   if (ovr >= 85) return 'var(--ovr-b)'
   if (ovr >= 80) return 'var(--ovr-c)'
   return 'var(--ovr-d)'
+}
+
+function ovrGlow(ovr: number) {
+  if (ovr >= 95) return 'rgba(251,191,36,0.25)'
+  if (ovr >= 90) return 'rgba(192,132,252,0.25)'
+  if (ovr >= 85) return 'rgba(96,165,250,0.25)'
+  if (ovr >= 80) return 'rgba(52,211,153,0.25)'
+  return 'rgba(100,116,139,0.2)'
 }
 
 function barColor(val: number) {
@@ -97,30 +111,53 @@ export default function PlayerDetailClient({ player }: Props) {
   }, {})
 
   const totalBadges = player.badges?.list?.length ?? 0
+  const potStyle = potential ? POTENTIAL_STYLE[potential] : null
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg)' }}>
-      <div className="max-w-4xl mx-auto px-4 py-8 space-y-4">
+      <div className="max-w-4xl mx-auto px-4 py-8 space-y-3">
 
         {/* Hero */}
         <div
-          className="rounded-xl p-6 flex flex-col sm:flex-row items-start gap-5"
+          className="rounded-xl p-5 flex flex-col sm:flex-row gap-5 items-start"
           style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}
         >
-          <div className="font-display text-8xl font-black leading-none" style={{ color: ovrColor(player.overall) }}>
-            {player.overall}
+          {/* OVR block */}
+          <div
+            className="flex flex-col items-center justify-center rounded-xl shrink-0"
+            style={{
+              width: '5.5rem', minHeight: '5.5rem',
+              background: 'var(--surface2)',
+              border: `2px solid ${ovrColor(player.overall)}`,
+              boxShadow: `0 0 20px ${ovrGlow(player.overall)}`,
+            }}
+          >
+            <div className="font-display text-5xl font-black leading-none tabular-nums" style={{ color: ovrColor(player.overall) }}>
+              {player.overall}
+            </div>
+            <div className="text-[8px] uppercase tracking-widest mt-1 font-semibold" style={{ color: 'var(--text-dim)' }}>OVR</div>
           </div>
+
+          {/* Name + meta */}
           <div className="flex-1 min-w-0">
-            <h1 className="font-display text-4xl font-bold tracking-wide leading-tight" style={{ color: 'var(--text)' }}>
+            <h1 className="font-display text-3xl sm:text-4xl font-bold tracking-wide leading-tight" style={{ color: 'var(--text)' }}>
               {player.name}
             </h1>
-            <div className="flex items-center gap-2 mt-2">
-              <TeamLogo team={player.team} size={32} />
-              <span className="text-sm font-medium" style={{ color: 'var(--text-sec)' }}>{player.team}</span>
+            <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+              <TeamLogo team={player.team} size={22} showAbbr />
+              {age != null && (
+                <>
+                  <span style={{ color: 'var(--text-dim)' }}>·</span>
+                  <span className="text-sm" style={{ color: 'var(--text-sec)' }}>{age} anni</span>
+                </>
+              )}
+              {player.archetype && (
+                <>
+                  <span style={{ color: 'var(--text-dim)' }}>·</span>
+                  <span className="text-sm font-medium" style={{ color: 'var(--gold)' }}>{player.archetype}</span>
+                </>
+              )}
             </div>
-            {player.archetype && (
-              <p className="text-sm mt-0.5 font-medium" style={{ color: 'var(--gold)' }}>{player.archetype}</p>
-            )}
             <div className="flex flex-wrap gap-2 mt-3">
               {player.positions.map(pos => (
                 <span
@@ -133,20 +170,29 @@ export default function PlayerDetailClient({ player }: Props) {
               ))}
             </div>
           </div>
+
+          {/* Potential + button */}
           <div className="flex flex-col items-end gap-3 shrink-0">
-            <div className="text-right">
-              <div className="text-[10px] uppercase tracking-widest mb-1" style={{ color: 'var(--text-dim)' }}>Potenziale</div>
+            <div className="flex flex-col items-center rounded-xl px-4 py-2.5"
+              style={{ background: 'var(--surface2)', border: '1px solid var(--border)', minWidth: '5rem' }}
+            >
+              <div className="text-[9px] uppercase tracking-widest mb-1 font-semibold" style={{ color: 'var(--text-dim)' }}>Potenziale</div>
               {potentialLoading ? (
-                <div className="w-12 h-8 rounded animate-pulse" style={{ background: 'var(--border)' }} />
-              ) : potential ? (
-                <div className={`font-display text-4xl font-black ${POTENTIAL_STYLE[potential] ?? 'text-white'}`}>{potential}</div>
+                <div className="w-10 h-8 rounded animate-pulse" style={{ background: 'var(--border)' }} />
+              ) : potStyle ? (
+                <div
+                  className="font-display text-4xl font-black px-2 rounded-lg"
+                  style={{ color: potStyle.color, background: potStyle.bg }}
+                >
+                  {potential}
+                </div>
               ) : (
-                <div className="text-2xl" style={{ color: 'var(--text-dim)' }}>—</div>
+                <div className="font-display text-3xl font-black" style={{ color: 'var(--text-dim)' }}>—</div>
               )}
             </div>
             <button
               onClick={() => saved ? removePlayer(player.slug) : savePlayer(player)}
-              className="text-sm font-semibold px-4 py-2 rounded-lg transition-colors"
+              className="text-sm font-semibold px-4 py-2 rounded-lg transition-colors whitespace-nowrap"
               style={saved
                 ? { background: 'rgba(239,68,68,0.12)', color: '#f87171', border: '1px solid rgba(239,68,68,0.3)' }
                 : { background: 'rgba(232,160,32,0.12)', color: 'var(--gold)', border: '1px solid rgba(232,160,32,0.3)' }
@@ -159,7 +205,7 @@ export default function PlayerDetailClient({ player }: Props) {
 
         {/* Info fisiche */}
         <div className="rounded-xl p-4" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
-          <h2 className="font-display text-sm font-bold uppercase tracking-widest mb-3" style={{ color: 'var(--text-sec)' }}>
+          <h2 className="font-display text-xs font-bold uppercase tracking-widest mb-3" style={{ color: 'var(--text-dim)' }}>
             Informazioni
           </h2>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
@@ -173,8 +219,8 @@ export default function PlayerDetailClient({ player }: Props) {
               ['Contratto', contract === undefined ? null : contract ? `${contract.years_remaining} ${contract.years_remaining === 1 ? 'anno' : 'anni'}` : 'Free Agent'],
               ['Opzione', contract?.salaries[0]?.note === 'PO' ? 'Player Option' : contract?.salaries[0]?.note === 'TO' ? 'Team Option' : contract?.salaries[0]?.note === 'QO' ? 'Qualifying Offer' : null],
             ].map(([label, val]) => val ? (
-              <div key={label as string}>
-                <div className="text-[10px] uppercase tracking-widest" style={{ color: 'var(--text-dim)' }}>{label}</div>
+              <div key={label as string} className="pl-2" style={{ borderLeft: '2px solid var(--border2)' }}>
+                <div className="text-[9px] uppercase tracking-widest" style={{ color: 'var(--text-dim)' }}>{label}</div>
                 <div className="font-semibold mt-0.5 text-sm" style={{ color: 'var(--text)' }}>{val}</div>
               </div>
             ) : null)}
@@ -184,7 +230,7 @@ export default function PlayerDetailClient({ player }: Props) {
         {/* Contratto */}
         {contract && contract.salaries.length > 0 && (
           <div className="rounded-xl p-4" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
-            <h2 className="font-display text-sm font-bold uppercase tracking-widest mb-3" style={{ color: 'var(--text-sec)' }}>
+            <h2 className="font-display text-xs font-bold uppercase tracking-widest mb-3" style={{ color: 'var(--text-dim)' }}>
               Contratto <span className="font-normal normal-case tracking-normal" style={{ color: 'var(--text-dim)' }}>({contract.years_remaining} {contract.years_remaining === 1 ? 'anno' : 'anni'})</span>
             </h2>
             <div className="space-y-1.5">
@@ -196,7 +242,7 @@ export default function PlayerDetailClient({ player }: Props) {
                     className="flex items-center justify-between px-3 py-2 rounded-lg"
                     style={{ background: 'var(--surface2)', border: '1px solid var(--border)' }}
                   >
-                    <span className="text-sm font-semibold font-display tracking-wider" style={{ color: 'var(--text-sec)' }}>
+                    <span className="font-display text-sm font-bold tracking-wider tabular-nums" style={{ color: 'var(--text-sec)' }}>
                       {s.year}
                     </span>
                     <div className="flex items-center gap-2">
@@ -225,24 +271,32 @@ export default function PlayerDetailClient({ player }: Props) {
         {/* Storico rating */}
         {player.ratingHistory && player.ratingHistory.length > 0 && (
           <div className="rounded-xl p-4" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
-            <h2 className="font-display text-sm font-bold uppercase tracking-widest mb-3" style={{ color: 'var(--text-sec)' }}>
+            <h2 className="font-display text-xs font-bold uppercase tracking-widest mb-3" style={{ color: 'var(--text-dim)' }}>
               Storico Rating
             </h2>
             <div className="flex flex-wrap gap-2">
               {player.ratingHistory.map(h => (
                 <div
                   key={h.gameVersion}
-                  className="text-center rounded-lg px-3 py-2 min-w-[64px]"
-                  style={{ background: 'var(--surface2)', border: '1px solid var(--border)' }}
+                  className="flex flex-col items-center rounded-xl px-3 py-2.5 min-w-[4rem]"
+                  style={{
+                    background: 'var(--surface2)',
+                    border: `1px solid ${ovrColor(h.overall)}40`,
+                  }}
                 >
-                  <div className="text-[10px]" style={{ color: 'var(--text-dim)' }}>{h.gameVersion}</div>
-                  <div className="font-display text-xl font-bold leading-tight" style={{ color: ovrColor(h.overall) }}>
+                  <div className="text-[9px] uppercase tracking-widest mb-1" style={{ color: 'var(--text-dim)' }}>{h.gameVersion}</div>
+                  <div className="font-display text-2xl font-black leading-none tabular-nums" style={{ color: ovrColor(h.overall) }}>
                     {h.overall}
                   </div>
-                  {h.delta !== undefined && h.delta !== 0 && (
-                    <div className="text-[10px] font-semibold" style={{ color: h.delta > 0 ? '#22c55e' : '#ef4444' }}>
+                  {h.delta !== undefined && h.delta !== 0 ? (
+                    <div
+                      className="text-[10px] font-black mt-1 tabular-nums"
+                      style={{ color: h.delta > 0 ? '#22c55e' : '#ef4444' }}
+                    >
                       {h.delta > 0 ? `+${h.delta}` : h.delta}
                     </div>
+                  ) : (
+                    <div className="text-[10px] mt-1" style={{ color: 'transparent' }}>+0</div>
                   )}
                 </div>
               ))}
@@ -258,25 +312,23 @@ export default function PlayerDetailClient({ player }: Props) {
               className="rounded-xl p-4"
               style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}
             >
-              <h2 className="font-display text-sm font-bold uppercase tracking-widest mb-3" style={{ color: 'var(--text-sec)' }}>
+              <h2 className="font-display text-xs font-bold uppercase tracking-widest mb-3" style={{ color: 'var(--text-dim)' }}>
                 {section.title}
               </h2>
-              <div className="space-y-2.5">
+              <div className="space-y-2">
                 {section.attrs.map(({ key, label }) => {
                   const val = player.attributes[key]
                   if (val === undefined) return null
+                  const color = barColor(val)
                   return (
-                    <div key={key} className="flex items-center gap-2">
+                    <div key={key} className="flex items-center gap-3">
                       <span className="text-xs w-36 shrink-0" style={{ color: 'var(--text-sec)' }}>{label}</span>
-                      <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{ background: 'var(--border)' }}>
-                        <div
-                          className="h-full rounded-full transition-all"
-                          style={{ width: `${val}%`, background: barColor(val) }}
-                        />
+                      <div className="flex-1 h-2 rounded-full overflow-hidden" style={{ background: 'var(--border)' }}>
+                        <div className="h-full rounded-full" style={{ width: `${val}%`, background: color }} />
                       </div>
                       <span
-                        className="text-xs w-7 text-right font-bold font-[tabular-nums]"
-                        style={{ color: 'var(--text)' }}
+                        className="font-display text-sm font-black w-8 text-right tabular-nums"
+                        style={{ color }}
                       >
                         {val}
                       </span>
@@ -291,49 +343,40 @@ export default function PlayerDetailClient({ player }: Props) {
         {/* Badge */}
         {totalBadges > 0 && (
           <div className="rounded-xl p-4" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
-            <h2 className="font-display text-sm font-bold uppercase tracking-widest mb-4" style={{ color: 'var(--text-sec)' }}>
+            <h2 className="font-display text-xs font-bold uppercase tracking-widest mb-4" style={{ color: 'var(--text-dim)' }}>
               Badge <span className="font-normal normal-case tracking-normal" style={{ color: 'var(--text-dim)' }}>({totalBadges})</span>
             </h2>
 
-            {/* Contatori per tier */}
-            <div className="grid grid-cols-3 sm:grid-cols-5 gap-2 mb-5">
-              {TIER_ORDER.map(tier => {
+            {/* Tier counters — 5 fixed slots */}
+            <div className="grid grid-cols-5 gap-2 mb-5">
+              {BADGE_TIERS.map(({ tier, color, bg, border, shadow }) => {
                 const count = badgesByTier[tier]?.length ?? 0
-                const s = BADGE_STYLES[tier]
                 return (
                   <div
                     key={tier}
                     className="flex flex-col items-center justify-center py-3 rounded-xl"
                     style={{
-                      background: s.bg,
-                      border: `1px solid ${s.border}`,
-                      boxShadow: s.shadow,
-                      opacity: count === 0 ? 0.3 : 1,
+                      background: count > 0 ? bg : 'var(--surface2)',
+                      border: `1px solid ${count > 0 ? border : 'var(--border)'}`,
+                      boxShadow: count > 0 ? shadow : 'none',
                     }}
                   >
-                    <span
-                      className="font-display text-5xl font-black leading-none tabular-nums"
-                      style={{ color: s.color }}
-                    >
+                    <span className="font-display text-4xl font-black leading-none tabular-nums" style={{ color: count > 0 ? color : 'var(--border2)' }}>
                       {count}
                     </span>
-                    <span
-                      className="text-[9px] uppercase tracking-widest font-bold mt-1.5"
-                      style={{ color: s.color }}
-                    >
-                      {tier}
+                    <span className="text-[8px] uppercase tracking-widest font-bold mt-1.5" style={{ color: count > 0 ? color : 'var(--border2)' }}>
+                      {tier === 'Hall of Fame' ? 'HOF' : tier}
                     </span>
                   </div>
                 )
               })}
             </div>
 
-            {/* Lista badge per tier */}
+            {/* Badge list per tier */}
             <div className="space-y-4">
-              {TIER_ORDER.map(tier => {
+              {BADGE_TIERS.map(({ tier, color, bg, border, shadow }) => {
                 const list = badgesByTier[tier]
                 if (!list) return null
-                const s = BADGE_STYLES[tier]
                 return (
                   <div key={tier}>
                     <div className="text-[10px] uppercase tracking-widest mb-2 font-semibold" style={{ color: 'var(--text-dim)' }}>
@@ -344,12 +387,7 @@ export default function PlayerDetailClient({ player }: Props) {
                         <span
                           key={badge}
                           className="text-xs px-2.5 py-1 rounded-full font-medium"
-                          style={{
-                            background: s.bg,
-                            color: s.color,
-                            border: `1px solid ${s.border}`,
-                            boxShadow: s.shadow,
-                          }}
+                          style={{ background: bg, color, border: `1px solid ${border}`, boxShadow: shadow }}
                         >
                           {badge}
                         </span>
