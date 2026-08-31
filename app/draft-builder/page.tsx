@@ -195,6 +195,14 @@ function GuidePanel() {
 const NOTE_SHORT: Record<string, string> = { PO: 'PO', TO: 'TO', QO: 'QO' }
 const NOTE_TITLE: Record<string, string> = { PO: 'Player Option', TO: 'Team Option', QO: 'Qualifying Offer' }
 
+const BADGE_TIERS = [
+  { tier: 'Legend',       short: 'LEG',  color: '#fca5a5', bg: 'rgba(239,68,68,0.2)',    border: 'rgba(239,68,68,0.45)',    shadow: '0 0 6px rgba(239,68,68,0.35)' },
+  { tier: 'Hall of Fame', short: 'HOF',  color: '#d8b4fe', bg: 'rgba(168,85,247,0.2)',   border: 'rgba(168,85,247,0.45)',   shadow: '0 0 6px rgba(168,85,247,0.3)' },
+  { tier: 'Gold',         short: 'GOLD', color: '#fde047', bg: 'rgba(234,179,8,0.2)',    border: 'rgba(234,179,8,0.45)' },
+  { tier: 'Silver',       short: 'SLV',  color: '#cbd5e1', bg: 'rgba(148,163,184,0.15)', border: 'rgba(148,163,184,0.4)' },
+  { tier: 'Bronze',       short: 'BRZ',  color: '#fdba74', bg: 'rgba(180,83,9,0.2)',     border: 'rgba(180,83,9,0.45)' },
+]
+
 // ── Main page ─────────────────────────────────────────────────────────────────
 
 interface DraftPick { slug: string; rank: number; pick: string; draftYear: number }
@@ -701,6 +709,21 @@ function DraftBuilderRow({
               FA
             </span>
           )}
+          {/* Badge tier counters */}
+          {BADGE_TIERS.map(({ tier, short, color, bg, border, shadow }) => {
+            const count = player.badges?.list?.filter(b => b.tier === tier).length ?? 0
+            if (count === 0) return null
+            return (
+              <span
+                key={tier}
+                className="inline-flex items-baseline gap-0.5 px-1.5 py-0.5 rounded font-bold"
+                style={{ background: bg, color, border: `1px solid ${border}`, boxShadow: shadow }}
+              >
+                <span className="text-xs font-black tabular-nums leading-none">{count}</span>
+                <span className="text-[9px] leading-none">{short}</span>
+              </span>
+            )
+          })}
         </div>
       </div>
 
