@@ -166,6 +166,8 @@ export default function PlayerDetailClient({ player }: Props) {
               ['Università', player.college],
               ['Versione', player.gameVersion],
               ['Età', age != null ? `${age} anni` : null],
+              ['Contratto', contract ? `${contract.years_remaining} ${contract.years_remaining === 1 ? 'anno' : 'anni'}` : contract === null ? 'Free Agent' : null],
+              ['Opzione', contract?.salaries[0]?.note === 'PO' ? 'Player Option' : contract?.salaries[0]?.note === 'TO' ? 'Team Option' : contract?.salaries[0]?.note === 'QO' ? 'Qualifying Offer' : null],
             ].map(([label, val]) => val ? (
               <div key={label as string}>
                 <div className="text-[10px] uppercase tracking-widest" style={{ color: 'var(--text-dim)' }}>{label}</div>

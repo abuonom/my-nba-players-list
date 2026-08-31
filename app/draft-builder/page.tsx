@@ -778,11 +778,21 @@ function DraftBuilderRow({
               </span>
             </>
           )}
-          {/* Compact salary — mobile only (contract block is hidden on mobile) */}
-          {salary != null && (
-            <span className="lg:hidden text-[10px] font-bold tabular-nums px-1.5 py-0.5 rounded" style={{ background: 'var(--surface2)', color: 'var(--gold)', border: '1px solid var(--border2)' }}>
-              {fmt(salary)}
-            </span>
+          {/* Contract info — mobile */}
+          {salary != null && contract && (
+            <>
+              <span className="lg:hidden text-[10px] font-bold tabular-nums px-1.5 py-0.5 rounded" style={{ background: 'var(--surface2)', color: 'var(--gold)', border: '1px solid var(--border2)' }}>
+                {fmt(salary)}<span className="font-normal opacity-70">/yr</span>
+              </span>
+              <span className="lg:hidden text-[10px] font-bold tabular-nums px-1.5 py-0.5 rounded" style={{ background: 'var(--surface2)', color: 'var(--text-sec)', border: '1px solid var(--border2)' }}>
+                {contract.years_remaining}yr
+              </span>
+              {note && NOTE_SHORT[note] && (
+                <span className="lg:hidden text-[10px] font-black px-1.5 py-0.5 rounded font-display" style={{ background: 'var(--gold-bg)', color: 'var(--gold)', border: '1px solid var(--gold-dim)' }}>
+                  {NOTE_SHORT[note]}
+                </span>
+              )}
+            </>
           )}
           {contract === null && (
             <span className="lg:hidden text-[10px] font-semibold px-1.5 py-0.5 rounded" style={{ color: 'var(--text-dim)', background: 'var(--surface2)', border: '1px solid var(--border)' }}>
