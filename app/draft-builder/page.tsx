@@ -227,8 +227,45 @@ export default function DraftBuilderPage() {
   const [draftLoading, setDraftLoading] = useState(false)
   const loadedDraftYears = useRef(new Set<number>())
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  // Drafted (hidden) players — per-user localStorage
+  const [userId, setUserId] = useState<string | null>(null)
+  const [draftedSlugs, setDraftedSlugs] = useState<Set<string>>(new Set())
+  const [showDrafted, setShowDrafted] = useState(false)
   const { savedPlayers, isSaved, savePlayer, removePlayer, clearAll } = useSavedPlayers()
   const { toasts, dismissToast } = useCapToasts(savedPlayers, contracts)
+
+  // Load userId and drafted slugs from localStorage
+  useEffect(() => {
+    createClient().auth.getUser().then(({ data }) => {
+      const uid = data.user?.id ?? null
+      setUserId(uid)
+      if (uid) {
+        try {
+          const raw = localStorage.getItem(`goat_drafted_${uid}`)
+          if (raw) setDraftedSlugs(new Set(JSON.parse(raw)))
+        } catch {}
+      }
+    })
+  }, [])
+
+  const toggleDrafted = useCallback((slug: string) => {
+    setDraftedSlugs(prev => {
+      const next = new Set(prev)
+      if (next.has(slug)) next.delete(slug)
+      else next.add(slug)
+      if (userId) {
+        try { localStorage.setItem(`goat_drafted_${userId}`, JSON.stringify([...next])) } catch {}
+      }
+      return next
+    })
+  }, [userId])
+
+  const clearDrafted = useCallback(() => {
+    setDraftedSlugs(new Set())
+    if (userId) {
+      try { localStorage.removeItem(`goat_drafted_${userId}`) } catch {}
+    }
+  }, [userId])
 
   const setWeight = useCallback((key: keyof BuildWeights, v: number) => {
     setWeights(prev => ({ ...prev, [key]: v }))
@@ -300,6 +337,7 @@ export default function DraftBuilderPage() {
       .filter(p => !posFilter || p.positions.includes(posFilter))
       .filter(p => attrFilters.every(f => (p.attributes[f.key] ?? 0) >= f.min))
       .filter(p => !activeDraftSlugs || activeDraftSlugs.has(p.slug))
+      .filter(p => showDrafted || !draftedSlugs.has(p.slug))
       .map(p => {
         const extra = potentials.get(p.slug)
         const contract = contracts.length > 0 ? matchContract(p.name, contracts) : undefined
@@ -312,7 +350,7 @@ export default function DraftBuilderPage() {
           ? b.player.overall - a.player.overall
           : b.score.total - a.score.total
       )
-  }, [players, potentials, contracts, weights, minOvr, search, posFilter, attrFilters, activeDraftSlugs, draftPicks, totalActive])
+  }, [players, potentials, contracts, weights, minOvr, search, posFilter, attrFilters, activeDraftSlugs, draftPicks, totalActive, draftedSlugs, showDrafted])
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg)' }}>
@@ -523,6 +561,45 @@ export default function DraftBuilderPage() {
               )}
             </div>
 
+            {/* Drafted players */}
+            {draftedSlugs.size > 0 && (
+              <div className="rounded-xl p-4 space-y-3" style={{ background: 'var(--surface)', border: '1px solid var(--border2)' }}>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="font-display text-base font-black tracking-wider mb-0.5" style={{ color: 'var(--text)' }}>
+                      GIÀ DRAFTATI
+                    </div>
+                    <div className="text-[10px]" style={{ color: 'var(--text-dim)' }}>
+                      {draftedSlugs.size} nascosti
+                    </div>
+                  </div>
+                  <span
+                    className="font-display text-2xl font-black tabular-nums"
+                    style={{ color: 'var(--text-sec)' }}
+                  >
+                    {draftedSlugs.size}
+                  </span>
+                </div>
+                <button
+                  onClick={() => setShowDrafted(v => !v)}
+                  className="w-full py-1.5 rounded-lg text-xs font-semibold transition-colors"
+                  style={showDrafted
+                    ? { background: 'rgba(148,163,184,0.15)', color: 'var(--text-sec)', border: '1px solid var(--border2)' }
+                    : { background: 'var(--surface2)', color: 'var(--text-sec)', border: '1px solid var(--border)' }
+                  }
+                >
+                  {showDrafted ? 'Nascondi' : 'Mostra'}
+                </button>
+                <button
+                  onClick={clearDrafted}
+                  className="w-full py-1.5 rounded-lg text-xs font-semibold"
+                  style={{ color: '#f87171', background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)' }}
+                >
+                  Reset lista
+                </button>
+              </div>
+            )}
+
             {/* Attribute filters */}
             <div className="rounded-xl p-4 space-y-3" style={{ background: 'var(--surface)', border: '1px solid var(--border2)' }}>
               <div>
@@ -557,8 +634,19 @@ export default function DraftBuilderPage() {
 
         {/* Main — player list */}
         <main className="flex-1 min-w-0">
-          <div className="text-xs mb-3" style={{ color: 'var(--text-dim)' }}>
-            {loading ? 'Caricamento...' : `${scored.length} giocatori`}
+          <div className="flex items-center justify-between mb-3">
+            <div className="text-xs" style={{ color: 'var(--text-dim)' }}>
+              {loading ? 'Caricamento...' : `${scored.length} giocatori`}
+            </div>
+            {draftedSlugs.size > 0 && (
+              <button
+                onClick={() => setShowDrafted(v => !v)}
+                className="text-xs font-semibold px-2.5 py-1 rounded-lg"
+                style={{ background: 'var(--surface2)', color: 'var(--text-dim)', border: '1px solid var(--border)' }}
+              >
+                {draftedSlugs.size} draftati {showDrafted ? '(nascondo)' : '(mostra)'}
+              </button>
+            )}
           </div>
 
           {loading ? (
@@ -583,6 +671,8 @@ export default function DraftBuilderPage() {
                   onRemove={() => removePlayer(player.slug)}
                   weights={weights}
                   attrFilters={attrFilters}
+                  isDrafted={draftedSlugs.has(player.slug)}
+                  onToggleDrafted={() => toggleDrafted(player.slug)}
                 />
               ))}
             </div>
@@ -608,7 +698,7 @@ export default function DraftBuilderPage() {
 // ── Row component ─────────────────────────────────────────────────────────────
 
 function DraftBuilderRow({
-  player, extra, contract, score, rank, pick, isSaved, onSave, onRemove, weights, attrFilters,
+  player, extra, contract, score, rank, pick, isSaved, onSave, onRemove, weights, attrFilters, isDrafted, onToggleDrafted,
 }: {
   player: Player
   extra: PlayerExtra | undefined
@@ -621,6 +711,8 @@ function DraftBuilderRow({
   onRemove: () => void
   weights: BuildWeights
   attrFilters: AttrFilter[]
+  isDrafted: boolean
+  onToggleDrafted: () => void
 }) {
   const pot = extra?.potential
   const age = extra?.age
@@ -632,7 +724,11 @@ function DraftBuilderRow({
   return (
     <div
       className="flex items-center gap-3 px-4 py-3 rounded-xl border"
-      style={{ background: 'var(--surface)', borderColor: 'var(--border2)' }}
+      style={{
+        background: 'var(--surface)',
+        borderColor: isDrafted ? 'rgba(148,163,184,0.2)' : 'var(--border2)',
+        opacity: isDrafted ? 0.45 : 1,
+      }}
     >
       {/* Rank + score ring */}
       <TotalScore score={score.total} rank={rank} />
@@ -784,17 +880,29 @@ function DraftBuilderRow({
         ))}
       </div>
 
-      {/* Action */}
-      <button
-        onClick={isSaved ? onRemove : onSave}
-        className="text-xs font-semibold px-3 py-2 rounded-lg transition-all whitespace-nowrap shrink-0"
-        style={isSaved
-          ? { background: 'rgba(239,68,68,0.1)', color: '#f87171', border: '1px solid rgba(239,68,68,0.25)' }
-          : { background: 'var(--gold-bg)', color: 'var(--gold)', border: '1px solid var(--gold-dim)' }
-        }
-      >
-        {isSaved ? 'Rimuovi' : '+ Rosa'}
-      </button>
+      {/* Actions */}
+      <div className="flex flex-col gap-1.5 shrink-0">
+        <button
+          onClick={isSaved ? onRemove : onSave}
+          className="text-xs font-semibold px-3 py-1.5 rounded-lg transition-all whitespace-nowrap"
+          style={isSaved
+            ? { background: 'rgba(239,68,68,0.1)', color: '#f87171', border: '1px solid rgba(239,68,68,0.25)' }
+            : { background: 'var(--gold-bg)', color: 'var(--gold)', border: '1px solid var(--gold-dim)' }
+          }
+        >
+          {isSaved ? 'Rimuovi' : '+ Rosa'}
+        </button>
+        <button
+          onClick={e => { e.stopPropagation(); onToggleDrafted() }}
+          className="text-xs font-semibold px-3 py-1.5 rounded-lg transition-all whitespace-nowrap"
+          style={isDrafted
+            ? { background: 'rgba(148,163,184,0.15)', color: 'var(--text-sec)', border: '1px solid var(--border2)' }
+            : { background: 'rgba(148,163,184,0.08)', color: 'var(--text-dim)', border: '1px solid var(--border)' }
+          }
+        >
+          {isDrafted ? '↩ Ripristina' : 'Preso'}
+        </button>
+      </div>
     </div>
   )
 }
