@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 
-const ADMIN_USER_ID = '0a4acf29-3841-43ce-bfcf-e4047d1f8c59'
+const ADMIN_USER_ID = '8c324ca8-0da6-4216-8579-d02c4887dda3'
 
 interface User {
   id: string
