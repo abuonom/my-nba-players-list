@@ -10,7 +10,7 @@ export interface BuildWeights {
   teamFriendly: number  // short/cheap contract
 }
 
-export const DEFAULT_WEIGHTS: BuildWeights = { rebuild: 5, winNow: 5, valueHunt: 5, teamFriendly: 5 }
+export const DEFAULT_WEIGHTS: BuildWeights = { rebuild: 0, winNow: 0, valueHunt: 0, teamFriendly: 0 }
 
 // ── Sub-scores (0–100 each) ───────────────────────────────────────────────────
 

@@ -1,26 +1,24 @@
 'use client'
 
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
+import { useRouter } from 'next/navigation'
 import { Player } from '@/types/nba'
 import { useSavedPlayers } from '@/hooks/useSavedPlayers'
+import { useCapToasts } from '@/hooks/useCapToasts'
 import type { ContractEntry } from '@/app/api/contracts/route'
 import type { PlayerExtra } from '@/hooks/usePotentials'
 import { scorePlayer, BuildWeights, DEFAULT_WEIGHTS, PlayerScore } from '@/lib/nba/playerScorer'
 import SavedList from '@/components/SavedList'
+import Toast from '@/components/Toast'
+import { createClient } from '@/lib/supabase/client'
+import { matchContract } from '@/lib/nba/matchContract'
+import AttributeFilterPicker, { AttrFilter, ATTRS } from '@/components/AttributeFilterPicker'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function fmt(n: number) {
   if (n >= 1_000_000) return `$${(n / 1_000_000).toFixed(1)}M`
   return `$${(n / 1_000).toFixed(0)}K`
-}
-
-function matchContract(name: string, contracts: ContractEntry[]): ContractEntry | null {
-  const norm = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]/g, '')
-  const n = norm(name)
-  return contracts.find(c => norm(c.name) === n) ??
-    contracts.find(c => norm(c.name).includes(n) || n.includes(norm(c.name))) ??
-    null
 }
 
 function ovrClass(ovr: number) {
@@ -118,6 +116,85 @@ function TotalScore({ score, rank }: { score: number; rank: number }) {
   )
 }
 
+// ── Guide panel ──────────────────────────────────────────────────────────────
+
+function GuidePanel() {
+  const [open, setOpen] = useState(false)
+
+  return (
+    <div className="rounded-xl overflow-hidden" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
+      <button
+        onClick={() => setOpen(o => !o)}
+        className="w-full flex items-center justify-between px-4 py-3"
+      >
+        <div className="flex items-center gap-2">
+          <span className="text-sm" style={{ color: 'var(--text-dim)' }}>?</span>
+          <span className="font-display text-sm font-black tracking-wider" style={{ color: 'var(--text-sec)' }}>
+            COME FUNZIONA
+          </span>
+        </div>
+        <span
+          className="text-xs transition-transform duration-200"
+          style={{ color: 'var(--text-dim)', display: 'inline-block', transform: open ? 'rotate(180deg)' : 'none' }}
+        >
+          ▾
+        </span>
+      </button>
+
+      {open && (
+        <div className="px-4 pb-4 space-y-3" style={{ borderTop: '1px solid var(--border)' }}>
+          <div className="pt-3 space-y-2.5">
+            {[
+              {
+                color: '#4ade80',
+                title: 'REBUILD',
+                desc: 'Premia giocatori giovani con alto potenziale (A+/A/A-). Ideale per costruire una squadra nel lungo periodo.',
+              },
+              {
+                color: '#c084fc',
+                title: 'WIN NOW',
+                desc: 'Ordina per Overall. Più è alto lo slider, più conta l\'OVR attuale. Per chi vuole vincere subito.',
+              },
+              {
+                color: '#facc15',
+                title: 'VALUE HUNT',
+                desc: 'Cerca giocatori con attributi specifici sopra la media rispetto al loro OVR. Trova le gemme nascoste.',
+              },
+              {
+                color: '#60a5fa',
+                title: 'TEAM FRIENDLY',
+                desc: 'Favorisce contratti corti e poco costosi. Utile per tenere flessibilità salariale.',
+              },
+            ].map(item => (
+              <div key={item.title} className="flex gap-2.5">
+                <div className="w-1 rounded-full shrink-0 mt-0.5" style={{ background: item.color, minHeight: '100%' }} />
+                <div>
+                  <div className="text-[10px] font-black tracking-widest font-display mb-0.5" style={{ color: item.color }}>
+                    {item.title}
+                  </div>
+                  <div className="text-[11px] leading-snug" style={{ color: 'var(--text-sec)' }}>
+                    {item.desc}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="pt-1 space-y-1.5 text-[11px] leading-snug" style={{ color: 'var(--text-dim)', borderTop: '1px solid var(--border)' }}>
+            <p className="pt-2">Gli slider si combinano: puoi mixare più dimensioni con pesi diversi (0–10).</p>
+            <p>Con tutti a 0 la lista è ordinata per OVR decrescente.</p>
+            <p>Usa <span style={{ color: 'var(--gold)' }}>Attributi</span> per filtrare su valori minimi specifici (es. 3PT ≥ 80).</p>
+            <p>Usa <span style={{ color: 'var(--gold)' }}>Draft Class</span> per vedere solo i giocatori di una specifica classe.</p>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+const NOTE_SHORT: Record<string, string> = { PO: 'PO', TO: 'TO', QO: 'QO' }
+const NOTE_TITLE: Record<string, string> = { PO: 'Player Option', TO: 'Team Option', QO: 'Qualifying Offer' }
+
 // ── Main page ─────────────────────────────────────────────────────────────────
 
 interface DraftPick { slug: string; rank: number; pick: string; draftYear: number }
@@ -125,6 +202,7 @@ interface DraftPick { slug: string; rank: number; pick: string; draftYear: numbe
 const DRAFT_YEARS = [2025, 2024, 2023, 2022, 2021]
 
 export default function DraftBuilderPage() {
+  const router = useRouter()
   const [weights, setWeights] = useState<BuildWeights>(DEFAULT_WEIGHTS)
   const [players, setPlayers] = useState<Player[]>([])
   const [potentials, setPotentials] = useState<Map<string, PlayerExtra>>(new Map())
@@ -133,6 +211,7 @@ export default function DraftBuilderPage() {
   const [search, setSearch] = useState('')
   const [minOvr, setMinOvr] = useState(75)
   const [posFilter, setPosFilter] = useState<string | null>(null)
+  const [attrFilters, setAttrFilters] = useState<AttrFilter[]>([])
   const [showSaved, setShowSaved] = useState(false)
   // Draft class filter
   const [draftYears, setDraftYears] = useState<number[]>([])
@@ -140,6 +219,7 @@ export default function DraftBuilderPage() {
   const [draftLoading, setDraftLoading] = useState(false)
   const loadedDraftYears = useRef(new Set<number>())
   const { savedPlayers, isSaved, savePlayer, removePlayer, clearAll } = useSavedPlayers()
+  const { toasts, dismissToast } = useCapToasts(savedPlayers, contracts)
 
   const setWeight = useCallback((key: keyof BuildWeights, v: number) => {
     setWeights(prev => ({ ...prev, [key]: v }))
@@ -202,11 +282,14 @@ export default function DraftBuilderPage() {
     return s
   }, [draftYears, draftPicks])
 
+  const totalActive = weights.rebuild + weights.winNow + weights.valueHunt + weights.teamFriendly
+
   const scored = useMemo(() => {
     return players
       .filter(p => p.overall >= minOvr)
       .filter(p => !search || p.name.toLowerCase().includes(search.toLowerCase()))
       .filter(p => !posFilter || p.positions.includes(posFilter))
+      .filter(p => attrFilters.every(f => (p.attributes[f.key] ?? 0) >= f.min))
       .filter(p => !activeDraftSlugs || activeDraftSlugs.has(p.slug))
       .map(p => {
         const extra = potentials.get(p.slug)
@@ -215,29 +298,30 @@ export default function DraftBuilderPage() {
         const pick = draftPicks.get(p.slug)
         return { player: p, extra, contract, score, pick: pick ?? null }
       })
-      .sort((a, b) => b.score.total - a.score.total)
-  }, [players, potentials, contracts, weights, minOvr, search, posFilter, activeDraftSlugs, draftPicks])
-
-  const totalActive = weights.rebuild + weights.winNow + weights.valueHunt + weights.teamFriendly
+      .sort((a, b) =>
+        totalActive === 0
+          ? b.player.overall - a.player.overall
+          : b.score.total - a.score.total
+      )
+  }, [players, potentials, contracts, weights, minOvr, search, posFilter, attrFilters, activeDraftSlugs, draftPicks, totalActive])
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg)' }}>
       {/* Header */}
       <header style={{ background: 'var(--surface)', borderBottom: '1px solid var(--border)' }} className="sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <a href="/" className="flex items-center gap-2">
-              <span className="font-display text-2xl font-bold tracking-wider" style={{ color: 'var(--gold)' }}>GOAT LEAGUE</span>
-              <span className="font-display text-2xl font-bold tracking-wide" style={{ color: 'var(--text)' }}>PROJECT</span>
-            </a>
-            <div
-              className="font-display text-sm font-black tracking-widest uppercase px-3 py-1.5 rounded"
-              style={{ color: 'var(--gold)', border: '1px solid var(--gold-dim)', background: 'var(--gold-bg)' }}
-            >
-              Draft Builder
-            </div>
+          <div className="flex items-center gap-2">
+            <span className="font-display text-2xl font-bold tracking-wider" style={{ color: 'var(--gold)' }}>GOAT LEAGUE</span>
+            <span className="font-display text-2xl font-bold tracking-wide" style={{ color: 'var(--text)' }}>PROJECT</span>
           </div>
           <div className="flex items-center gap-2 flex-wrap justify-end">
+            <button
+              onClick={async () => { const sb = createClient(); await sb.auth.signOut(); router.push('/login'); router.refresh() }}
+              className="text-xs font-semibold px-3 py-1.5 rounded transition-colors"
+              style={{ background: 'var(--surface2)', color: 'var(--text-sec)', border: '1px solid var(--border)' }}
+            >
+              Esci
+            </button>
             {/* Position filters */}
             <div className="flex gap-1">
               {['PG','SG','SF','PF','C'].map(pos => (
@@ -277,7 +361,7 @@ export default function DraftBuilderPage() {
               className="flex items-center gap-2 text-xs font-semibold px-3 py-1.5 rounded transition-colors"
               style={{ background: 'rgba(232,160,32,0.12)', color: 'var(--gold)', border: '1px solid rgba(232,160,32,0.3)' }}
             >
-              Il mio Squad
+              La mia Rosa
               {savedPlayers.length > 0 && (
                 <span className="text-[10px] font-bold px-1.5 py-0.5 rounded" style={{ background: 'var(--gold)', color: '#000' }}>
                   {savedPlayers.length}
@@ -291,7 +375,7 @@ export default function DraftBuilderPage() {
       <div className="max-w-7xl mx-auto px-4 py-6 flex gap-5">
         {/* Sidebar — sliders */}
         <aside className="w-64 shrink-0">
-          <div className="sticky top-16 space-y-4">
+          <div className="sticky top-16 space-y-4 overflow-y-auto" style={{ maxHeight: 'calc(100vh - 5rem)' }}>
             <div className="rounded-xl p-4 space-y-5" style={{ background: 'var(--surface)', border: '1px solid var(--border2)' }}>
               <div>
                 <div className="font-display text-base font-black tracking-wider mb-0.5" style={{ color: 'var(--text)' }}>
@@ -306,10 +390,13 @@ export default function DraftBuilderPage() {
               ))}
               {totalActive === 0 && (
                 <div className="text-xs text-center px-2 py-2 rounded" style={{ color: '#fb923c', background: 'rgba(251,146,60,0.1)', border: '1px solid rgba(251,146,60,0.25)' }}>
-                  Attiva almeno uno slider
+                  Con tutti a 0 la lista è ordinata per OVR
                 </div>
               )}
             </div>
+
+            {/* Guide */}
+            <GuidePanel />
 
             {/* Draft class filter */}
             <div className="rounded-xl p-4 space-y-3" style={{ background: 'var(--surface)', border: '1px solid var(--border2)' }}>
@@ -349,8 +436,21 @@ export default function DraftBuilderPage() {
                 </button>
               )}
               {draftLoading && (
-                <div className="text-[10px]" style={{ color: 'var(--text-dim)' }}>Caricamento draft class...</div>
+                <div className="text-[10px]" style={{ color: 'var(--text-dim)' }}>Caricamento...</div>
               )}
+            </div>
+
+            {/* Attribute filters */}
+            <div className="rounded-xl p-4 space-y-3" style={{ background: 'var(--surface)', border: '1px solid var(--border2)' }}>
+              <div>
+                <div className="font-display text-base font-black tracking-wider mb-0.5" style={{ color: 'var(--text)' }}>
+                  ATTRIBUTI
+                </div>
+                <div className="text-[10px]" style={{ color: 'var(--text-dim)' }}>
+                  Fino a 4 valori minimi
+                </div>
+              </div>
+              <AttributeFilterPicker value={attrFilters} onChange={setAttrFilters} />
             </div>
 
             {/* Legend */}
@@ -399,12 +499,15 @@ export default function DraftBuilderPage() {
                   onSave={() => savePlayer(player)}
                   onRemove={() => removePlayer(player.slug)}
                   weights={weights}
+                  attrFilters={attrFilters}
                 />
               ))}
             </div>
           )}
         </main>
       </div>
+
+      <Toast messages={toasts} onDismiss={dismissToast} />
 
       {showSaved && (
         <SavedList
@@ -422,7 +525,7 @@ export default function DraftBuilderPage() {
 // ── Row component ─────────────────────────────────────────────────────────────
 
 function DraftBuilderRow({
-  player, extra, contract, score, rank, pick, isSaved, onSave, onRemove, weights,
+  player, extra, contract, score, rank, pick, isSaved, onSave, onRemove, weights, attrFilters,
 }: {
   player: Player
   extra: PlayerExtra | undefined
@@ -434,11 +537,14 @@ function DraftBuilderRow({
   onSave: () => void
   onRemove: () => void
   weights: BuildWeights
+  attrFilters: AttrFilter[]
 }) {
   const pot = extra?.potential
   const age = extra?.age
   const potStyle = pot ? POT_STYLE[pot] : null
-  const salary = contract?.salaries[0]?.amount
+  const firstSalary = contract?.salaries[0]
+  const salary = firstSalary?.amount
+  const note = firstSalary?.note
 
   return (
     <div
@@ -462,6 +568,23 @@ function DraftBuilderRow({
         <div className="font-display text-lg font-bold leading-tight truncate" style={{ color: 'var(--text)' }}>
           {player.name}
         </div>
+        {attrFilters.length > 0 && (
+          <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+            {attrFilters.map(f => {
+              const val = player.attributes[f.key] ?? 0
+              const label = ATTRS.find(a => a.key === f.key)?.label ?? f.key
+              return (
+                <span
+                  key={f.key}
+                  className="text-[10px] font-bold px-1.5 py-0.5 rounded tabular-nums"
+                  style={{ background: 'var(--gold-bg)', color: 'var(--gold)', border: '1px solid var(--gold-dim)' }}
+                >
+                  {label} <span style={{ color: 'var(--text)' }}>{val}</span>
+                </span>
+              )
+            })}
+          </div>
+        )}
         <div className="flex items-center gap-2 mt-0.5 flex-wrap">
           <span className="text-xs" style={{ color: 'var(--text-sec)' }}>{player.team}</span>
           {age != null && (
@@ -492,18 +615,49 @@ function DraftBuilderRow({
               </span>
             </>
           )}
-          {salary ? (
-            <>
-              <span style={{ color: 'var(--text-dim)' }}>·</span>
-              <span className="text-xs font-bold tabular-nums" style={{ color: 'var(--gold)' }}>{fmt(salary)}</span>
-            </>
-          ) : contract === null ? (
-            <>
-              <span style={{ color: 'var(--text-dim)' }}>·</span>
-              <span className="text-xs font-bold" style={{ color: 'var(--text-sec)' }}>FA</span>
-            </>
-          ) : null}
         </div>
+      </div>
+
+      {/* Contract block */}
+      <div className="hidden lg:block shrink-0">
+        {contract && firstSalary ? (
+          <div className="flex divide-x rounded-lg overflow-hidden" style={{ border: '1px solid var(--border2)' }}>
+            <div className="px-2.5 py-1.5 text-center" style={{ background: 'var(--surface2)' }}>
+              <div className="text-[9px] uppercase tracking-widest font-semibold mb-1" style={{ color: 'var(--text-sec)' }}>Durata</div>
+              <div className="font-display text-sm font-bold leading-none whitespace-nowrap" style={{ color: 'var(--text)' }}>
+                {contract.years_remaining}<span className="text-[10px] font-normal ml-0.5" style={{ color: 'var(--text-sec)' }}>yr</span>
+              </div>
+            </div>
+            <div className="px-2.5 py-1.5 text-center" style={{ background: 'var(--surface2)' }}>
+              <div className="text-[9px] uppercase tracking-widest font-semibold mb-1" style={{ color: 'var(--text-sec)' }}>Valore</div>
+              <div className="font-display text-sm font-bold leading-none tabular-nums whitespace-nowrap" style={{ color: 'var(--gold)' }}>
+                {fmt(salary!)}<span className="text-[10px] font-normal ml-0.5" style={{ color: 'var(--text-sec)' }}>/yr</span>
+              </div>
+            </div>
+            <div className="px-2.5 py-1.5 text-center" style={{ background: 'var(--surface2)' }}>
+              <div className="text-[9px] uppercase tracking-widest font-semibold mb-1" style={{ color: 'var(--text-sec)' }}>Opzione</div>
+              {note && NOTE_SHORT[note] ? (
+                <span
+                  className="font-display text-sm font-black px-1.5 rounded"
+                  style={{ background: 'var(--gold-bg)', color: 'var(--gold)', border: '1px solid var(--gold-dim)' }}
+                  title={NOTE_TITLE[note]}
+                >
+                  {NOTE_SHORT[note]}
+                </span>
+              ) : (
+                <div className="text-sm font-bold" style={{ color: 'var(--text-sec)' }}>—</div>
+              )}
+            </div>
+          </div>
+        ) : contract === null ? (
+          <div
+            className="px-3 py-1.5 rounded-lg text-center"
+            style={{ border: '1px solid var(--border2)', background: 'var(--surface2)' }}
+          >
+            <span className="font-display text-sm font-black tracking-widest" style={{ color: 'var(--text-sec)' }}>FA</span>
+            <div className="text-[9px] uppercase tracking-widest mt-0.5" style={{ color: 'var(--text-dim)' }}>Svincolato</div>
+          </div>
+        ) : null}
       </div>
 
       {/* Score breakdown — only active dimensions */}
@@ -527,7 +681,7 @@ function DraftBuilderRow({
           : { background: 'var(--gold-bg)', color: 'var(--gold)', border: '1px solid var(--gold-dim)' }
         }
       >
-        {isSaved ? 'Rimuovi' : '+ Squad'}
+        {isSaved ? 'Rimuovi' : '+ Rosa'}
       </button>
     </div>
   )

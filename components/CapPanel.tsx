@@ -77,7 +77,7 @@ export default function CapPanel({ teamSalaries }: Props) {
       {/* Header — team salary */}
       <div className="px-4 pt-3 pb-2" style={{ borderBottom: '1px solid var(--border)' }}>
         <div className="text-[9px] uppercase tracking-widest font-semibold mb-1" style={{ color: 'var(--text-dim)' }}>
-          Salary totale squad · {rules.season}
+          Salario totale rosa · {rules.season}
         </div>
         <div className="flex items-end justify-between">
           <div className="font-display text-3xl font-black leading-none" style={{ color: 'var(--text)' }}>

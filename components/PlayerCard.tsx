@@ -2,6 +2,8 @@
 
 import { Player } from '@/types/nba'
 import type { ContractEntry } from '@/app/api/contracts/route'
+import type { AttrFilter } from './AttributeFilterPicker'
+import { ATTRS } from './AttributeFilterPicker'
 
 function formatSalary(n: number) {
   if (n >= 1_000_000) return `$${(n / 1_000_000).toFixed(1)}M`
@@ -39,9 +41,10 @@ interface Props {
   potential?: string | null
   age?: number | null
   contract?: ContractEntry | null
+  attrFilters?: AttrFilter[]
 }
 
-export default function PlayerCard({ player, isSaved, onSave, onRemove, potential, age, contract }: Props) {
+export default function PlayerCard({ player, isSaved, onSave, onRemove, potential, age, contract, attrFilters }: Props) {
   const firstSalary = contract?.salaries[0]
   const note = firstSalary?.note
 
@@ -63,6 +66,23 @@ export default function PlayerCard({ player, isSaved, onSave, onRemove, potentia
         <div className="font-display text-xl font-bold leading-tight truncate" style={{ color: 'var(--text)' }}>
           {player.name}
         </div>
+        {attrFilters && attrFilters.length > 0 && (
+          <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+            {attrFilters.map(f => {
+              const val = player.attributes[f.key] ?? 0
+              const label = ATTRS.find(a => a.key === f.key)?.label ?? f.key
+              return (
+                <span
+                  key={f.key}
+                  className="text-[10px] font-bold px-1.5 py-0.5 rounded tabular-nums"
+                  style={{ background: 'var(--gold-bg)', color: 'var(--gold)', border: '1px solid var(--gold-dim)' }}
+                >
+                  {label} <span style={{ color: 'var(--text)' }}>{val}</span>
+                </span>
+              )
+            })}
+          </div>
+        )}
         <div className="flex items-center gap-2 mt-0.5">
           <span className="text-xs" style={{ color: 'var(--text-sec)' }}>{player.team}</span>
           {age != null && (
@@ -162,7 +182,7 @@ export default function PlayerCard({ player, isSaved, onSave, onRemove, potentia
               style={{ border: '1px solid var(--border2)', background: 'var(--surface2)' }}
             >
               <span className="font-display text-sm font-black tracking-widest" style={{ color: 'var(--text-sec)' }}>FA</span>
-              <div className="text-[9px] uppercase tracking-widest mt-0.5" style={{ color: 'var(--text-dim)' }}>Free Agent</div>
+              <div className="text-[9px] uppercase tracking-widest mt-0.5" style={{ color: 'var(--text-dim)' }}>Svincolato</div>
             </div>
           ) : null}
         </div>
@@ -175,7 +195,7 @@ export default function PlayerCard({ player, isSaved, onSave, onRemove, potentia
             : { background: 'var(--gold-bg)', color: 'var(--gold)', border: '1px solid var(--gold-dim)' }
           }
         >
-          {isSaved ? 'Rimuovi' : 'Salva'}
+          {isSaved ? 'Rimuovi' : 'Aggiungi'}
         </button>
       </div>
     </div>

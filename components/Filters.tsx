@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { PlayerFilters } from '@/types/nba'
+import AttributeFilterPicker, { AttrFilter } from './AttributeFilterPicker'
 
 interface Props {
   filters: PlayerFilters
@@ -9,73 +10,12 @@ interface Props {
   archetypes: string[]
   onChange: (filters: PlayerFilters) => void
   onReset: () => void
+  attrFilters: AttrFilter[]
+  onAttrFiltersChange: (v: AttrFilter[]) => void
 }
 
 const POSITIONS = ['PG', 'SG', 'SF', 'PF', 'C']
 
-const ATTR_GROUPS = [
-  {
-    label: 'Tiro',
-    attrs: [
-      { key: 'threePointShot', label: '3 Punti' },
-      { key: 'midRangeShot', label: 'Mid Range' },
-      { key: 'closeShot', label: 'Close Shot' },
-      { key: 'freeThrow', label: 'Tiro Libero' },
-      { key: 'shotIQ', label: 'Shot IQ' },
-      { key: 'offensiveConsistency', label: 'Consistenza Off.' },
-    ],
-  },
-  {
-    label: 'Finishing',
-    attrs: [
-      { key: 'drivingLayup', label: 'Layup' },
-      { key: 'standingDunk', label: 'Standing Dunk' },
-      { key: 'drivingDunk', label: 'Driving Dunk' },
-      { key: 'postHook', label: 'Post Hook' },
-      { key: 'postFade', label: 'Post Fade' },
-      { key: 'postControl', label: 'Post Control' },
-      { key: 'drawFoul', label: 'Draw Foul' },
-      { key: 'hands', label: 'Mani' },
-    ],
-  },
-  {
-    label: 'Playmaking',
-    attrs: [
-      { key: 'ballHandle', label: 'Ball Handle' },
-      { key: 'speedWithBall', label: 'Vel. con Palla' },
-      { key: 'passAccuracy', label: 'Passaggio' },
-      { key: 'passVision', label: 'Visione' },
-      { key: 'passIQ', label: 'Pass IQ' },
-      { key: 'passPerception', label: 'Percezione' },
-    ],
-  },
-  {
-    label: 'Difesa',
-    attrs: [
-      { key: 'interiorDefense', label: 'Int. Difesa' },
-      { key: 'perimeterDefense', label: 'Per. Difesa' },
-      { key: 'steal', label: 'Intercetto' },
-      { key: 'block', label: 'Stoppata' },
-      { key: 'lateralQuickness', label: 'Lat. Quickness' },
-      { key: 'helpDefenseIQ', label: 'Help Def IQ' },
-      { key: 'defensiveConsistency', label: 'Consistenza Dif.' },
-      { key: 'defensiveRebound', label: 'Rimbalzo Dif.' },
-    ],
-  },
-  {
-    label: 'Atletismo',
-    attrs: [
-      { key: 'speed', label: 'Velocità' },
-      { key: 'agility', label: 'Agilità' },
-      { key: 'strength', label: 'Forza' },
-      { key: 'vertical', label: 'Verticale' },
-      { key: 'stamina', label: 'Resistenza' },
-      { key: 'hustle', label: 'Grinta' },
-      { key: 'durability', label: 'Durabilità' },
-      { key: 'offensiveRebound', label: 'Rimbalzo Off.' },
-    ],
-  },
-]
 
 function Section({ title, children, defaultOpen = false }: { title: string; children: React.ReactNode; defaultOpen?: boolean }) {
   const [open, setOpen] = useState(defaultOpen)
@@ -119,12 +59,12 @@ const selectStyle = {
   cursor: 'pointer',
 }
 
-export default function Filters({ filters, teams, archetypes, onChange, onReset }: Props) {
+export default function Filters({ filters, teams, archetypes, onChange, onReset, attrFilters, onAttrFiltersChange }: Props) {
   const set = (key: string, value: string | number | undefined) => {
     onChange({ ...filters, [key]: value || undefined })
   }
 
-  const activeCount = Object.values(filters).filter(v => v !== undefined && v !== '').length
+  const activeCount = Object.values(filters).filter(v => v !== undefined && v !== '').length + attrFilters.length
 
   return (
     <div
@@ -145,7 +85,7 @@ export default function Filters({ filters, teams, archetypes, onChange, onReset 
           )}
         </div>
         <button
-          onClick={onReset}
+          onClick={() => { onReset(); onAttrFiltersChange([]) }}
           className="text-[11px] font-medium transition-colors"
           style={{ color: 'var(--text-sec)' }}
         >
@@ -234,25 +174,9 @@ export default function Filters({ filters, teams, archetypes, onChange, onReset 
       </Section>
 
       {/* Attributi */}
-      {ATTR_GROUPS.map(group => (
-        <Section key={group.label} title={group.label}>
-          <div className="space-y-2">
-            {group.attrs.map(({ key, label }) => (
-              <div key={key} className="flex items-center gap-2">
-                <label className="text-xs shrink-0 w-28" style={{ color: 'var(--text-sec)' }}>{label}</label>
-                <input
-                  type="number"
-                  placeholder="Min"
-                  min={0} max={99}
-                  value={(filters[`${key}_gte`] as number) ?? ''}
-                  onChange={e => set(`${key}_gte`, e.target.value ? Number(e.target.value) : undefined)}
-                  style={{ ...inputStyle, padding: '4px 8px' }}
-                />
-              </div>
-            ))}
-          </div>
-        </Section>
-      ))}
+      <Section title="Attributi" defaultOpen>
+        <AttributeFilterPicker value={attrFilters} onChange={onAttrFiltersChange} />
+      </Section>
     </div>
   )
 }
