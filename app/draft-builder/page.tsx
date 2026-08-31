@@ -709,21 +709,6 @@ function DraftBuilderRow({
               FA
             </span>
           )}
-          {/* Badge tier counters */}
-          {BADGE_TIERS.map(({ tier, short, color, bg, border, shadow }) => {
-            const count = player.badges?.list?.filter(b => b.tier === tier).length ?? 0
-            if (count === 0) return null
-            return (
-              <span
-                key={tier}
-                className="inline-flex items-baseline gap-0.5 px-1.5 py-0.5 rounded font-bold"
-                style={{ background: bg, color, border: `1px solid ${border}`, boxShadow: shadow }}
-              >
-                <span className="text-xs font-black tabular-nums leading-none">{count}</span>
-                <span className="text-[9px] leading-none">{short}</span>
-              </span>
-            )
-          })}
         </div>
       </div>
 
@@ -767,6 +752,24 @@ function DraftBuilderRow({
             <div className="text-[9px] uppercase tracking-widest mt-0.5" style={{ color: 'var(--text-dim)' }}>Svincolato</div>
           </div>
         ) : null}
+      </div>
+
+      {/* Badge tier counters */}
+      <div className="hidden lg:flex flex-col gap-1 shrink-0">
+        {BADGE_TIERS.map(({ tier, short, color, bg, border, shadow }) => {
+          const count = player.badges?.list?.filter(b => b.tier === tier).length ?? 0
+          if (count === 0) return null
+          return (
+            <span
+              key={tier}
+              className="inline-flex items-baseline gap-0.5 px-1.5 py-0.5 rounded font-bold"
+              style={{ background: bg, color, border: `1px solid ${border}`, boxShadow: shadow }}
+            >
+              <span className="text-xs font-black tabular-nums leading-none">{count}</span>
+              <span className="text-[9px] leading-none">{short}</span>
+            </span>
+          )
+        })}
       </div>
 
       {/* Score breakdown — only active dimensions */}
