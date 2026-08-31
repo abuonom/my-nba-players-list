@@ -846,15 +846,20 @@ function DraftBuilderRow({
       </div>
 
       {/* Badge tier counters */}
-      <div className="hidden lg:flex flex-row flex-wrap gap-1 shrink-0 max-w-[8rem] content-start">
+      <div className="hidden lg:grid shrink-0" style={{ gridTemplateColumns: 'repeat(3, 1fr)', gap: '4px', width: '7rem' }}>
         {BADGE_TIERS.map(({ tier, short, color, bg, border, shadow }) => {
           const count = player.badges?.list?.filter(b => b.tier === tier).length ?? 0
-          if (count === 0) return null
           return (
             <span
               key={tier}
               className="inline-flex items-baseline gap-0.5 px-1.5 py-0.5 rounded font-bold"
-              style={{ background: bg, color, border: `1px solid ${border}`, boxShadow: shadow }}
+              style={{
+                background: count > 0 ? bg : 'transparent',
+                color: count > 0 ? color : 'transparent',
+                border: `1px solid ${count > 0 ? border : 'transparent'}`,
+                boxShadow: count > 0 ? shadow : 'none',
+                visibility: count > 0 ? 'visible' : 'hidden',
+              }}
             >
               <span className="text-xs font-black tabular-nums leading-none">{count}</span>
               <span className="text-[9px] leading-none">{short}</span>
