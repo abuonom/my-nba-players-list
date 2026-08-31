@@ -755,7 +755,7 @@ function DraftBuilderRow({
       </div>
 
       {/* Badge tier counters */}
-      <div className="hidden lg:flex flex-col gap-1 shrink-0">
+      <div className="hidden lg:flex flex-row flex-wrap gap-1 shrink-0 max-w-[8rem] content-start">
         {BADGE_TIERS.map(({ tier, short, color, bg, border, shadow }) => {
           const count = player.badges?.list?.filter(b => b.tier === tier).length ?? 0
           if (count === 0) return null
