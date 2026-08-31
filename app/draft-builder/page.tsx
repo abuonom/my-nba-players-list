@@ -218,6 +218,7 @@ export default function DraftBuilderPage() {
   const [draftPicks, setDraftPicks] = useState<Map<string, DraftPick>>(new Map())
   const [draftLoading, setDraftLoading] = useState(false)
   const loadedDraftYears = useRef(new Set<number>())
+  const [sidebarOpen, setSidebarOpen] = useState(false)
   const { savedPlayers, isSaved, savePlayer, removePlayer, clearAll } = useSavedPlayers()
   const { toasts, dismissToast } = useCapToasts(savedPlayers, contracts)
 
@@ -314,7 +315,66 @@ export default function DraftBuilderPage() {
             <span className="font-display text-2xl font-bold tracking-wider" style={{ color: 'var(--gold)' }}>GOAT LEAGUE</span>
             <span className="font-display text-2xl font-bold tracking-wide" style={{ color: 'var(--text)' }}>PROJECT</span>
           </div>
-          <div className="flex items-center gap-2 flex-wrap justify-end">
+          <div className="flex items-center gap-2">
+            {/* Desktop: pos filters + search + OVR */}
+            <div className="hidden lg:flex items-center gap-2">
+              <div className="flex gap-1">
+                {['PG','SG','SF','PF','C'].map(pos => (
+                  <button
+                    key={pos}
+                    onClick={() => setPosFilter(p => p === pos ? null : pos)}
+                    className="font-display text-xs font-black px-2 py-1 rounded transition-all"
+                    style={posFilter === pos
+                      ? { background: 'var(--gold-bg2)', color: 'var(--gold)', border: '1px solid var(--gold-dim)' }
+                      : { background: 'var(--surface2)', color: 'var(--text-sec)', border: '1px solid var(--border)' }
+                    }
+                  >
+                    {pos}
+                  </button>
+                ))}
+              </div>
+              <input
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                placeholder="Cerca..."
+                className="text-xs px-3 py-1.5 rounded-lg outline-none w-32"
+                style={{ background: 'var(--surface2)', border: '1px solid var(--border2)', color: 'var(--text)' }}
+              />
+              <select
+                value={minOvr}
+                onChange={e => setMinOvr(Number(e.target.value))}
+                className="text-xs px-2 py-1.5 rounded-lg outline-none"
+                style={{ background: 'var(--surface2)', border: '1px solid var(--border2)', color: 'var(--text)' }}
+              >
+                {[65, 70, 75, 78, 80, 82, 85].map(v => <option key={v} value={v}>{v}+</option>)}
+              </select>
+            </div>
+
+            {/* Mobile: sidebar toggle */}
+            <button
+              className="lg:hidden text-sm px-3 py-1.5 rounded transition-colors"
+              style={{ background: 'var(--surface2)', color: 'var(--text-sec)', border: '1px solid var(--border)' }}
+              onClick={() => setSidebarOpen(true)}
+              aria-label="Apri filtri"
+            >
+              ☰
+            </button>
+
+            {/* Rosa — always visible */}
+            <button
+              onClick={() => setShowSaved(true)}
+              className="flex items-center gap-2 text-xs font-semibold px-3 py-1.5 rounded transition-colors"
+              style={{ background: 'rgba(232,160,32,0.12)', color: 'var(--gold)', border: '1px solid rgba(232,160,32,0.3)' }}
+            >
+              <span className="hidden sm:inline">La mia </span>Rosa
+              {savedPlayers.length > 0 && (
+                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded" style={{ background: 'var(--gold)', color: '#000' }}>
+                  {savedPlayers.length}
+                </span>
+              )}
+            </button>
+
+            {/* Esci */}
             <button
               onClick={async () => { const sb = createClient(); await sb.auth.signOut(); router.push('/login'); router.refresh() }}
               className="text-xs font-semibold px-3 py-1.5 rounded transition-colors"
@@ -322,13 +382,48 @@ export default function DraftBuilderPage() {
             >
               Esci
             </button>
-            {/* Position filters */}
-            <div className="flex gap-1">
+          </div>
+        </div>
+      </header>
+
+      {/* Mobile sidebar backdrop */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 z-40 lg:hidden"
+          style={{ background: 'rgba(0,0,0,0.6)' }}
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
+      <div className="max-w-7xl mx-auto px-4 py-6 flex gap-5">
+        {/* Sidebar — responsive drawer on mobile, static on desktop */}
+        <aside
+          className={`fixed lg:static inset-y-0 lg:inset-y-auto left-0 lg:left-auto z-50 lg:z-auto w-72 lg:w-64 shrink-0 overflow-y-auto lg:overflow-visible transition-transform duration-300 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}
+          style={{ background: 'var(--bg)' }}
+        >
+          {/* Mobile: sidebar header with close button */}
+          <div
+            className="lg:hidden flex items-center justify-between px-4 py-3 sticky top-0 z-10"
+            style={{ background: 'var(--surface)', borderBottom: '1px solid var(--border)' }}
+          >
+            <span className="font-display text-sm font-black tracking-wider" style={{ color: 'var(--text-sec)' }}>FILTRI</span>
+            <button
+              onClick={() => setSidebarOpen(false)}
+              className="w-8 h-8 flex items-center justify-center rounded text-base"
+              style={{ color: 'var(--text-sec)', background: 'var(--surface2)' }}
+            >
+              ✕
+            </button>
+          </div>
+
+          {/* Mobile: pos filters + search + OVR */}
+          <div className="lg:hidden px-4 py-3 space-y-3" style={{ borderBottom: '1px solid var(--border)' }}>
+            <div className="flex flex-wrap gap-1.5">
               {['PG','SG','SF','PF','C'].map(pos => (
                 <button
                   key={pos}
                   onClick={() => setPosFilter(p => p === pos ? null : pos)}
-                  className="font-display text-xs font-black px-2 py-1 rounded transition-all"
+                  className="font-display text-xs font-black px-2.5 py-1.5 rounded transition-all"
                   style={posFilter === pos
                     ? { background: 'var(--gold-bg2)', color: 'var(--gold)', border: '1px solid var(--gold-dim)' }
                     : { background: 'var(--surface2)', color: 'var(--text-sec)', border: '1px solid var(--border)' }
@@ -338,44 +433,24 @@ export default function DraftBuilderPage() {
                 </button>
               ))}
             </div>
-
             <input
               value={search}
               onChange={e => setSearch(e.target.value)}
-              placeholder="Cerca..."
-              className="text-xs px-3 py-1.5 rounded-lg outline-none w-32"
+              placeholder="Cerca giocatore..."
+              className="w-full text-xs px-3 py-2 rounded-lg outline-none"
               style={{ background: 'var(--surface2)', border: '1px solid var(--border2)', color: 'var(--text)' }}
             />
-
             <select
               value={minOvr}
               onChange={e => setMinOvr(Number(e.target.value))}
-              className="text-xs px-2 py-1.5 rounded-lg outline-none"
+              className="w-full text-xs px-2 py-2 rounded-lg outline-none"
               style={{ background: 'var(--surface2)', border: '1px solid var(--border2)', color: 'var(--text)' }}
             >
-              {[65, 70, 75, 78, 80, 82, 85].map(v => <option key={v} value={v}>{v}+</option>)}
+              {[65, 70, 75, 78, 80, 82, 85].map(v => <option key={v} value={v}>OVR {v}+</option>)}
             </select>
-
-            <button
-              onClick={() => setShowSaved(true)}
-              className="flex items-center gap-2 text-xs font-semibold px-3 py-1.5 rounded transition-colors"
-              style={{ background: 'rgba(232,160,32,0.12)', color: 'var(--gold)', border: '1px solid rgba(232,160,32,0.3)' }}
-            >
-              La mia Rosa
-              {savedPlayers.length > 0 && (
-                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded" style={{ background: 'var(--gold)', color: '#000' }}>
-                  {savedPlayers.length}
-                </span>
-              )}
-            </button>
           </div>
-        </div>
-      </header>
 
-      <div className="max-w-7xl mx-auto px-4 py-6 flex gap-5">
-        {/* Sidebar — sliders */}
-        <aside className="w-64 shrink-0">
-          <div className="sticky top-16 space-y-4 overflow-y-auto" style={{ maxHeight: 'calc(100vh - 5rem)' }}>
+          <div className="p-4 space-y-4 lg:sticky lg:top-16 lg:overflow-y-auto lg:max-h-[calc(100vh-5rem)]">
             <div className="rounded-xl p-4 space-y-5" style={{ background: 'var(--surface)', border: '1px solid var(--border2)' }}>
               <div>
                 <div className="font-display text-base font-black tracking-wider mb-0.5" style={{ color: 'var(--text)' }}>
@@ -614,6 +689,17 @@ function DraftBuilderRow({
                 {pick.draftYear} #{pick.pick}
               </span>
             </>
+          )}
+          {/* Compact salary — mobile only (contract block is hidden on mobile) */}
+          {salary != null && (
+            <span className="lg:hidden text-[10px] font-bold tabular-nums px-1.5 py-0.5 rounded" style={{ background: 'var(--surface2)', color: 'var(--gold)', border: '1px solid var(--border2)' }}>
+              {fmt(salary)}
+            </span>
+          )}
+          {contract === null && (
+            <span className="lg:hidden text-[10px] font-semibold px-1.5 py-0.5 rounded" style={{ color: 'var(--text-dim)', background: 'var(--surface2)', border: '1px solid var(--border)' }}>
+              FA
+            </span>
           )}
         </div>
       </div>

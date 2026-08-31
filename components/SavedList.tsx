@@ -1,7 +1,5 @@
 'use client'
 
-'use client'
-
 import { useState } from 'react'
 import { Player } from '@/types/nba'
 import type { ContractEntry } from '@/app/api/contracts/route'
