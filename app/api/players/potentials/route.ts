@@ -24,5 +24,7 @@ export async function GET(req: NextRequest) {
   // Riempi i missing con null
   for (const slug of slugs) if (!result[slug]) result[slug] = { potential: null, age: null }
 
-  return NextResponse.json(result)
+  return NextResponse.json(result, {
+    headers: { 'Cache-Control': 's-maxage=1800, stale-while-revalidate=3600' },
+  })
 }

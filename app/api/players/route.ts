@@ -24,7 +24,9 @@ export async function GET(request: NextRequest) {
     if (minRating) players = players.filter((p: Record<string, unknown>) => Number(p.overall) >= Number(minRating))
     if (maxRating) players = players.filter((p: Record<string, unknown>) => Number(p.overall) <= Number(maxRating))
 
-    return NextResponse.json({ success: true, data: players })
+    return NextResponse.json({ success: true, data: players }, {
+      headers: { 'Cache-Control': 's-maxage=3600, stale-while-revalidate=86400' },
+    })
   } catch (e) {
     const msg = e instanceof Error ? e.message : 'Errore DB'
     return NextResponse.json({ success: false, error: { message: msg } }, { status: 500 })
