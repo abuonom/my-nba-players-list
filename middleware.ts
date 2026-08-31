@@ -23,7 +23,7 @@ export async function middleware(request: NextRequest) {
 
   const { data: { user } } = await supabase.auth.getUser()
 
-  const publicPaths = ['/login', '/reset-password']
+  const publicPaths = ['/login', '/reset-password', '/auth']
   if (!user && !publicPaths.some(p => request.nextUrl.pathname.startsWith(p))) {
     const url = request.nextUrl.clone()
     url.pathname = '/login'
