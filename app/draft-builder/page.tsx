@@ -100,13 +100,13 @@ function ScoreBar({ value, color }: { value: number; color: string }) {
 function TotalScore({ score, rank, active }: { score: number; rank: number; active: boolean }) {
   const color = score >= 75 ? '#fde047' : score >= 55 ? '#4ade80' : score >= 35 ? '#60a5fa' : 'var(--text-sec)'
   return (
-    <div className="flex flex-col items-center w-10 shrink-0">
+    <div className="flex flex-col items-center justify-center w-12 shrink-0" style={{ minHeight: '3rem' }}>
       {active ? (
         <>
-          <div className="text-[9px] uppercase tracking-widest mb-0.5" style={{ color: 'var(--text-dim)' }}>#{rank}</div>
+          <div className="text-[8px] uppercase tracking-widest mb-1" style={{ color: 'var(--text-dim)' }}>#{rank}</div>
           <div
-            className="w-10 h-10 rounded-full flex items-center justify-center font-display text-lg font-black"
-            style={{ background: `conic-gradient(${color} ${score * 3.6}deg, var(--border) 0deg)`, padding: 3 }}
+            className="w-11 h-11 rounded-full flex items-center justify-center font-display text-lg font-black"
+            style={{ background: `conic-gradient(${color} ${score * 3.6}deg, var(--border) 0deg)`, padding: '3px' }}
           >
             <div className="w-full h-full rounded-full flex items-center justify-center" style={{ background: 'var(--surface)' }}>
               <span style={{ color }}>{score}</span>
@@ -114,7 +114,7 @@ function TotalScore({ score, rank, active }: { score: number; rank: number; acti
           </div>
         </>
       ) : (
-        <div className="font-display text-sm font-black tabular-nums" style={{ color: 'var(--text-dim)' }}>#{rank}</div>
+        <span className="font-display text-base font-black tabular-nums" style={{ color: 'var(--text-dim)' }}>#{rank}</span>
       )}
     </div>
   )
@@ -711,7 +711,7 @@ function DraftBuilderRow({
 
   return (
     <div
-      className="flex items-center gap-3 px-4 py-3 rounded-xl border transition-colors duration-150 hover:border-[var(--gold-dim)]"
+      className="flex items-center gap-4 px-4 py-3 rounded-xl border transition-colors duration-150 hover:border-[var(--gold-dim)]"
       style={{
         background: 'var(--surface)',
         borderColor: isDrafted ? 'rgba(148,163,184,0.2)' : 'var(--border2)',
@@ -848,25 +848,30 @@ function DraftBuilderRow({
         ) : null}
       </div>
 
-      {/* Badge tier counters — always 2 cols, hidden badges keep space */}
-      <div className="hidden lg:grid shrink-0" style={{ gridTemplateColumns: 'repeat(2, minmax(3rem, auto))', gap: '3px' }}>
+      {/* Badge tier counters — 5 fixed slots, always same width/height */}
+      <div className="hidden lg:flex items-center gap-1 shrink-0">
         {BADGE_TIERS.map(({ tier, short, color, bg, border, shadow }) => {
           const count = player.badges?.list?.filter(b => b.tier === tier).length ?? 0
           return (
-            <span
+            <div
               key={tier}
-              className="inline-flex items-baseline gap-0.5 px-1.5 py-0.5 rounded font-bold"
+              className="flex flex-col items-center justify-center rounded-lg"
               style={{
-                background: bg,
-                color,
-                border: `1px solid ${border}`,
-                boxShadow: shadow,
-                visibility: count > 0 ? 'visible' : 'hidden',
+                width: '2.25rem', height: '2.25rem',
+                background: count > 0 ? bg : 'var(--surface2)',
+                border: `1px solid ${count > 0 ? border : 'var(--border)'}`,
+                boxShadow: count > 0 ? shadow : 'none',
               }}
             >
-              <span className="text-xs font-black tabular-nums leading-none">{count}</span>
-              <span className="text-[9px] leading-none">{short}</span>
-            </span>
+              {count > 0 ? (
+                <>
+                  <span className="font-display text-sm font-black leading-none tabular-nums" style={{ color }}>{count}</span>
+                  <span className="text-[7px] font-bold leading-none mt-0.5 tracking-wide" style={{ color }}>{short}</span>
+                </>
+              ) : (
+                <span className="text-[7px] font-semibold tracking-wide" style={{ color: 'var(--border2)' }}>{short}</span>
+              )}
+            </div>
           )
         })}
       </div>
