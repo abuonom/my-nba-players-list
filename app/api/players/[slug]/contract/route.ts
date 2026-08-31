@@ -25,5 +25,14 @@ export async function GET(
     return nameNorm === slugNorm || nameNorm.includes(slugNorm) || slugNorm.includes(nameNorm)
   })
 
-  return NextResponse.json({ success: true, data: match ?? null })
+  if (!match) return NextResponse.json({ success: true, data: null })
+
+  // Normalize camelCase cache fields to snake_case to match ContractEntry type
+  const normalized = {
+    ...match,
+    years_remaining: (match as ContractEntry & { yearsRemaining?: number }).yearsRemaining
+      ?? match.years_remaining,
+  }
+
+  return NextResponse.json({ success: true, data: normalized })
 }
